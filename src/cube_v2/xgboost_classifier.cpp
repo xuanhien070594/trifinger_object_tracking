@@ -1,12 +1,13 @@
-#include "xgboost_classifier.h"
 #include <iostream>
 #include <fstream>
-#include <vector>
-using namespace std;
+#include <trifinger_object_tracking/color_segmenter.hpp>
 
-std::vector<float> xgb_classify(std::vector<float> &sample) {
+namespace trifinger_object_tracking {
+std::array<float, XGB_NUM_CLASSES> xgb_classify_cube_v2(
+        std::array<float, XGB_NUM_FEATURES> &sample) {
 
-  std::vector<float> sum (7, 0.0);
+  std::array<float, XGB_NUM_CLASSES> sum;
+  sum.fill(0.0);
 
   if (sample[4] <72) {
     if (sample[3] <141) {
@@ -1442,5 +1443,6 @@ std::vector<float> xgb_classify(std::vector<float> &sample) {
 
 
   return sum;
+}
 }
 
