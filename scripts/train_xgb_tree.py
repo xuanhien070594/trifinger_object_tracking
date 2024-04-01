@@ -14,6 +14,7 @@ import cv2 as cv
 import numpy as np
 import pandas as pd
 from xgboost import XGBClassifier
+from sklearn.preprocessing import LabelEncoder
 
 from matplotlib import colors
 
@@ -25,9 +26,11 @@ filename2class["m"] = "magenta"
 filename2class["b"] = "blue"
 filename2class["c"] = "cyan"
 filename2class["g"] = "green"
+color_names = ['background', 'blue', 'cyan', 'green', 'magenta',  'red', 'yellow']
 
 
 def class2bgr(pixel_class):
+    pixel_class = color_names[pixel_class]
     if pixel_class == "background":
         color = "black"
     else:
@@ -79,7 +82,7 @@ def load_segment(path: pathlib.Path, name: str) -> pd.DataFrame:
     data = pd.DataFrame(features)
 
     mask = cv.imread(str(path / name))
-    mask = mask.sum(axis=2) != 0
+    mask = mask.sum(axis=2) > 1 # black color [0, 0, 1]
     mask = mask.flatten()
     data = data[mask]
 
@@ -152,6 +155,7 @@ def prepare_data(
     test_frames = frames[n_train_frames:]
 
     train_set = data.loc[data["frame"].isin(train_frames)]
+
     train_set = balance_classes(
         data=train_set, background_ratio=background_ratio, random_state=seed
     )
@@ -215,6 +219,9 @@ def load_data_and_fit_model(input_filename, output_filename, feature_names):
     print("done preparing training data")
 
     print("fitting model")
+    le = LabelEncoder()
+    y_train = le.fit_transform(y_train)
+    y_test = le.fit_transform(y_test)
     model = fit_model(X_train, y_train)
     model.save_model(output_filename)
     model.get_booster().dump_model(output_filename + "_dump.txt")

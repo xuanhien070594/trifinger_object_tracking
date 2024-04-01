@@ -66,7 +66,7 @@ if __name__ == "__main__":
             }
 
             for key in masks:
-                binary_mask = np.sum(masks[key], axis=2) == 0
+                binary_mask = np.sum(masks[key], axis=2) == 1 # black color [0, 0, 1]
                 eroded_binary_mask = ndimage.binary_erosion(
                     binary_mask, structure=np.ones([10, 10])
                 )
