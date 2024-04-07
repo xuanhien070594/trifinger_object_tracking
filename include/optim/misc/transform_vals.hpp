@@ -1,6 +1,6 @@
 /*################################################################################
   ##
-  ##   Copyright (C) 2016-2020 Keith O'Hara
+  ##   Copyright (C) 2016-2023 Keith O'Hara
   ##
   ##   This file is part of the OptimLib C++ library.
   ##
@@ -22,16 +22,19 @@
  * transform values
  */
 
+template<typename vT>
 inline
-Vec_t
-transform(const Vec_t& vals_inp, 
-          const VecInt_t& bounds_type, 
-          const Vec_t& lower_bounds, 
-          const Vec_t& upper_bounds)
+vT
+transform(
+    const vT& vals_inp, 
+    const ColVecInt_t& bounds_type, 
+    const ColVec_t& lower_bounds, 
+    const ColVec_t& upper_bounds
+)
 {
-    const size_t n_vals = OPTIM_MATOPS_SIZE(bounds_type);
+    const size_t n_vals = BMO_MATOPS_SIZE(bounds_type);
 
-    Vec_t vals_trans_out(n_vals);
+    vT vals_trans_out(n_vals);
 
     for (size_t i = 0; i < n_vals; ++i) {
         switch (bounds_type(i)) {
@@ -55,16 +58,19 @@ transform(const Vec_t& vals_inp,
     return vals_trans_out;
 }
 
+template<typename vT>
 inline
-Vec_t
-inv_transform(const Vec_t& vals_trans_inp, 
-              const VecInt_t& bounds_type, 
-              const Vec_t& lower_bounds, 
-              const Vec_t& upper_bounds)
+vT
+inv_transform(
+    const vT& vals_trans_inp, 
+    const ColVecInt_t& bounds_type, 
+    const ColVec_t& lower_bounds, 
+    const ColVec_t& upper_bounds
+)
 {
-    const size_t n_vals = OPTIM_MATOPS_SIZE(bounds_type);
+    const size_t n_vals = BMO_MATOPS_SIZE(bounds_type);
 
-    Vec_t vals_out(n_vals);
+    vT vals_out(n_vals);
 
     for (size_t i = 0; i < n_vals; ++i) {
         switch (bounds_type(i)) {
@@ -88,7 +94,7 @@ inv_transform(const Vec_t& vals_trans_inp,
             case 4: // upper and lower bounds
                 if (!std::isfinite(vals_trans_inp(i))) {
                     if (std::isnan(vals_trans_inp(i))) {
-                        vals_out(i) = (upper_bounds(i) - lower_bounds(i)) / 2.0;
+                        vals_out(i) = (upper_bounds(i) - lower_bounds(i)) / 2;
                     }
                     else if (vals_trans_inp(i) < 0.0) {
                         vals_out(i) = lower_bounds(i) + eps_dbl;

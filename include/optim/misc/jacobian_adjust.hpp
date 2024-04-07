@@ -1,6 +1,6 @@
 /*################################################################################
   ##
-  ##   Copyright (C) 2016-2020 Keith O'Hara
+  ##   Copyright (C) 2016-2023 Keith O'Hara
   ##
   ##   This file is part of the OptimLib C++ library.
   ##
@@ -24,14 +24,16 @@
 
 inline
 Mat_t
-jacobian_adjust(const Vec_t& vals_trans_inp, 
-                const VecInt_t& bounds_type, 
-                const Vec_t& lower_bounds, 
-                const Vec_t& upper_bounds)
+jacobian_adjust(
+    const ColVec_t& vals_trans_inp, 
+    const ColVecInt_t& bounds_type, 
+    const ColVec_t& lower_bounds, 
+    const ColVec_t& upper_bounds
+)
 {
-    const size_t n_vals = OPTIM_MATOPS_SIZE(bounds_type);
+    const size_t n_vals = BMO_MATOPS_SIZE(bounds_type);
 
-    Mat_t ret_mat = OPTIM_MATOPS_EYE(n_vals);
+    Mat_t ret_mat = BMO_MATOPS_EYE(n_vals);
 
     for (size_t i = 0; i < n_vals; ++i) {
         switch (bounds_type(i)) {

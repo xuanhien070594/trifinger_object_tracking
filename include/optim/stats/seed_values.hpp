@@ -1,6 +1,6 @@
 /*################################################################################
   ##
-  ##   Copyright (C) 2016-2020 Keith O'Hara
+  ##   Copyright (C) 2016-2023 Keith O'Hara
   ##
   ##   This file is part of the OptimLib C++ library.
   ##
@@ -18,18 +18,15 @@
   ##
   ################################################################################*/
 
-#ifndef OPTIM_MATOPS_ARRAY_ADD
+#ifndef OPTIMLIB_STATS_SEED_VALUES
+#define OPTIMLIB_STATS_SEED_VALUES
 
-//
-
-#ifdef OPTIM_ENABLE_ARMA_WRAPPERS
-    #define OPTIM_MATOPS_ARRAY_ADD_SCALAR(x,a) (x) + a
-#endif
-
-#ifdef OPTIM_ENABLE_EIGEN_WRAPPERS
-    #define OPTIM_MATOPS_ARRAY_ADD_SCALAR(x,a) ((x).array() + a).matrix()
-#endif
-
-//
+inline
+size_t
+generate_seed_value(const int ind_inp, const int n_threads, rand_engine_t& rand_engine)
+{
+    return static_cast<size_t>( (bmo::stats::runif<fp_t>(rand_engine) + ind_inp + n_threads) * 1000 );
+    // return static_cast<size_t>( (ind_inp + n_threads) * 1000 );
+}
 
 #endif

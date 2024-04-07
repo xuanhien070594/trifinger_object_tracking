@@ -1,6 +1,6 @@
 /*################################################################################
   ##
-  ##   Copyright (C) 2016-2020 Keith O'Hara
+  ##   Copyright (C) 2016-2023 Keith O'Hara
   ##
   ##   This file is part of the OptimLib C++ library.
   ##
@@ -29,7 +29,7 @@
  * @brief Newton's Nonlinear Optimization Algorithm
  *
  * @param init_out_vals a column vector of initial values, which will be replaced by the solution upon successful completion of the optimization algorithm.
- * @param opt_objfn the function to be minimized, taking three arguments:
+ * @param opt_objfn the function to be minimized, taking four arguments:
  *   - \c vals_inp a vector of inputs;
  *   - \c grad_out a vector to store the gradient;
  *   - \c hess_out a matrix to store the Hessian; and
@@ -40,15 +40,17 @@
  */
 
 bool 
-newton(Vec_t& init_out_vals, 
-       std::function<double (const Vec_t& vals_inp, Vec_t* grad_out, Mat_t* hess_out, void* opt_data)> opt_objfn, 
-       void* opt_data);
+newton(
+    ColVec_t& init_out_vals, 
+    std::function<fp_t (const ColVec_t& vals_inp, ColVec_t* grad_out, Mat_t* hess_out, void* opt_data)> opt_objfn, 
+    void* opt_data
+);
 
 /**
  * @brief Newton's Nonlinear Optimization Algorithm
  *
  * @param init_out_vals a column vector of initial values, which will be replaced by the solution upon successful completion of the optimization algorithm.
- * @param opt_objfn the function to be minimized, taking three arguments:
+ * @param opt_objfn the function to be minimized, taking four arguments:
  *   - \c vals_inp a vector of inputs;
  *   - \c grad_out a vector to store the gradient;
  *   - \c hess_out a matrix to store the Hessian; and
@@ -60,10 +62,12 @@ newton(Vec_t& init_out_vals,
  */
 
 bool
-newton(Vec_t& init_out_vals, 
-       std::function<double (const Vec_t& vals_inp, Vec_t* grad_out, Mat_t* hess_out, void* opt_data)> opt_objfn, 
-       void* opt_data, 
-       algo_settings_t& settings);
+newton(
+    ColVec_t& init_out_vals, 
+    std::function<fp_t (const ColVec_t& vals_inp, ColVec_t* grad_out, Mat_t* hess_out, void* opt_data)> opt_objfn, 
+    void* opt_data, 
+    algo_settings_t& settings
+);
 
 //
 // internal
@@ -72,10 +76,12 @@ namespace internal
 {
 
 bool 
-newton_impl(Vec_t& init_out_vals, 
-            std::function<double (const Vec_t& vals_inp, Vec_t* grad_out, Mat_t* hess_out, void* opt_data)> opt_objfn, 
-            void* opt_data, 
-            algo_settings_t* settings_inp);
+newton_impl(
+    ColVec_t& init_out_vals, 
+    std::function<fp_t (const ColVec_t& vals_inp, ColVec_t* grad_out, Mat_t* hess_out, void* opt_data)> opt_objfn, 
+    void* opt_data, 
+    algo_settings_t* settings_inp
+);
 
 }
 
@@ -84,16 +90,17 @@ newton_impl(Vec_t& init_out_vals,
 inline
 bool
 internal::newton_impl(
-    Vec_t& init_out_vals, 
-    std::function<double (const Vec_t& vals_inp, Vec_t* grad_out, Mat_t* hess_out, void* opt_data)> opt_objfn, 
+    ColVec_t& init_out_vals, 
+    std::function<fp_t (const ColVec_t& vals_inp, ColVec_t* grad_out, Mat_t* hess_out, void* opt_data)> opt_objfn, 
     void* opt_data, 
-    algo_settings_t* settings_inp)
+    algo_settings_t* settings_inp
+)
 {
     // notation: 'p' stands for '+1'.
 
     bool success = false;
 
-    const size_t n_vals = OPTIM_MATOPS_SIZE(init_out_vals);
+    const size_t n_vals = BMO_MATOPS_SIZE(init_out_vals);
 
     // settings
 
@@ -107,26 +114,26 @@ internal::newton_impl(
     
     const uint_t conv_failure_switch = settings.conv_failure_switch;
     const size_t iter_max = settings.iter_max;
-    const double grad_err_tol = settings.grad_err_tol;
-    const double rel_sol_change_tol = settings.rel_sol_change_tol;
+    const fp_t grad_err_tol = settings.grad_err_tol;
+    const fp_t rel_sol_change_tol = settings.rel_sol_change_tol;
 
     // initialization
 
-    Vec_t x = init_out_vals;
-    Vec_t x_p = x;
+    ColVec_t x = init_out_vals;
+    ColVec_t x_p = x;
 
-    if (! OPTIM_MATOPS_IS_FINITE(x) ) {
+    if (! BMO_MATOPS_IS_FINITE(x) ) {
         printf("newton error: non-finite initial value(s).\n");
         return false;
     }
 
     Mat_t H(n_vals, n_vals);                    // hessian matrix
-    Vec_t grad(n_vals);                         // gradient vector
-    Vec_t d = OPTIM_MATOPS_ZERO_VEC(n_vals);    // direction vector
+    ColVec_t grad(n_vals);                         // gradient vector
+    ColVec_t d = BMO_MATOPS_ZERO_COLVEC(n_vals);    // direction vector
 
     opt_objfn(x_p, &grad, &H, opt_data);
 
-    double grad_err = OPTIM_MATOPS_L2NORM(grad);
+    fp_t grad_err = BMO_MATOPS_L2NORM(grad);
 
     OPTIM_NEWTON_TRACE(-1, grad_err, 0.0, x_p, d, grad, H);
 
@@ -136,14 +143,14 @@ internal::newton_impl(
 
     // if ||gradient(initial values)|| > tolerance, then continue
 
-    d = - OPTIM_MATOPS_SOLVE(H, grad); // Newton direction
+    d = - BMO_MATOPS_SOLVE(H, grad); // Newton direction
 
     x_p += d; // no line search used here
 
     opt_objfn(x_p, &grad, &H, opt_data);
 
-    grad_err = OPTIM_MATOPS_L2NORM(grad);
-    double rel_sol_change = OPTIM_MATOPS_L1NORM( OPTIM_MATOPS_ARRAY_DIV_ARRAY( (x_p - x), (OPTIM_MATOPS_ARRAY_ADD_SCALAR(OPTIM_MATOPS_ABS(x), 1.0e-08)) ) );
+    grad_err = BMO_MATOPS_L2NORM(grad);
+    fp_t rel_sol_change = BMO_MATOPS_L1NORM( BMO_MATOPS_ARRAY_DIV_ARRAY( (x_p - x), (BMO_MATOPS_ARRAY_ADD_SCALAR(BMO_MATOPS_ABS(x), OPTIM_FPN_SMALL_NUMBER)) ) );
 
     OPTIM_NEWTON_TRACE(0, grad_err, rel_sol_change, x_p, d, grad, H);
 
@@ -163,15 +170,15 @@ internal::newton_impl(
 
         //
 
-        d = - OPTIM_MATOPS_SOLVE(H,grad);
+        d = - BMO_MATOPS_SOLVE(H,grad);
         x_p += d;
         
         opt_objfn(x_p, &grad, &H, opt_data);
         
         //
 
-        grad_err = OPTIM_MATOPS_L2NORM(grad);
-        rel_sol_change = OPTIM_MATOPS_L1NORM( OPTIM_MATOPS_ARRAY_DIV_ARRAY( (x_p - x), (OPTIM_MATOPS_ARRAY_ADD_SCALAR(OPTIM_MATOPS_ABS(x), 1.0e-08)) ) );
+        grad_err = BMO_MATOPS_L2NORM(grad);
+        rel_sol_change = BMO_MATOPS_L1NORM( BMO_MATOPS_ARRAY_DIV_ARRAY( (x_p - x), (BMO_MATOPS_ARRAY_ADD_SCALAR(BMO_MATOPS_ABS(x), OPTIM_FPN_SMALL_NUMBER)) ) );
 
         //
 
@@ -191,19 +198,23 @@ internal::newton_impl(
 
 inline
 bool
-newton(Vec_t& init_out_vals, 
-              std::function<double (const Vec_t& vals_inp, Vec_t* grad_out, Mat_t* hess_out, void* opt_data)> opt_objfn, 
-              void* opt_data)
+newton(
+    ColVec_t& init_out_vals, 
+    std::function<fp_t (const ColVec_t& vals_inp, ColVec_t* grad_out, Mat_t* hess_out, void* opt_data)> opt_objfn, 
+    void* opt_data
+)
 {
     return internal::newton_impl(init_out_vals,opt_objfn,opt_data,nullptr);
 }
 
 inline
 bool
-newton(Vec_t& init_out_vals, 
-              std::function<double (const Vec_t& vals_inp, Vec_t* grad_out, Mat_t* hess_out, void* opt_data)> opt_objfn, 
-              void* opt_data, 
-              algo_settings_t& settings)
+newton(
+    ColVec_t& init_out_vals, 
+    std::function<fp_t (const ColVec_t& vals_inp, ColVec_t* grad_out, Mat_t* hess_out, void* opt_data)> opt_objfn, 
+    void* opt_data, 
+    algo_settings_t& settings
+)
 {
     return internal::newton_impl(init_out_vals,opt_objfn,opt_data,&settings);
 }

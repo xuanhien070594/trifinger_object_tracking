@@ -1,6 +1,6 @@
 /*################################################################################
   ##
-  ##   Copyright (C) 2016-2020 Keith O'Hara
+  ##   Copyright (C) 2016-2023 Keith O'Hara
   ##
   ##   This file is part of the OptimLib C++ library.
   ##
@@ -18,22 +18,18 @@
   ##
   ################################################################################*/
 
-/*
- * dot product
- */
+#ifndef OPTIMLIB_UNCONSTRAINED_INCLUDES
+#define OPTIMLIB_UNCONSTRAINED_INCLUDES
 
-#ifndef OPTIM_MATOPS_DOT_PROD
-
-//
-
-#ifdef OPTIM_ENABLE_ARMA_WRAPPERS
-    #define OPTIM_MATOPS_DOT_PROD(x,y) arma::dot(x,y)
-#endif
-
-#ifdef OPTIM_ENABLE_EIGEN_WRAPPERS
-    #define OPTIM_MATOPS_DOT_PROD(x,y) (x).dot(y)
-#endif
-
-//
+#include "bfgs.hpp"
+#include "lbfgs.hpp"
+#include "newton.hpp"
+#include "cg.hpp"
+#include "gd.hpp"
+#include "de.hpp"
+#include "de_prmm.hpp"
+#include "nm.hpp"
+#include "pso.hpp"
+#include "pso_dv.hpp"
 
 #endif

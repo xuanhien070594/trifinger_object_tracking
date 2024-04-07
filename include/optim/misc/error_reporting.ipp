@@ -1,6 +1,6 @@
 /*################################################################################
   ##
-  ##   Copyright (C) 2016-2020 Keith O'Hara
+  ##   Copyright (C) 2016-2023 Keith O'Hara
   ##
   ##   This file is part of the OptimLib C++ library.
   ##
@@ -24,17 +24,19 @@
 
 inline
 void
-error_reporting(Vec_t& out_vals, 
-                const Vec_t& x_p, 
-                std::function<double (const Vec_t& vals_inp, Vec_t* grad_out, void* opt_data)> opt_objfn, 
-                void* opt_data, 
-                bool& success, 
-                const double err, 
-                const double err_tol, 
-                const size_t iter, 
-                const size_t iter_max, 
-                const int conv_failure_switch, 
-                algo_settings_t* settings_inp)
+error_reporting(
+    ColVec_t& out_vals, 
+    const ColVec_t& x_p, 
+    std::function<fp_t (const ColVec_t& vals_inp, ColVec_t* grad_out, void* opt_data)> opt_objfn, 
+    void* opt_data, 
+    bool& success, 
+    const fp_t err, 
+    const fp_t err_tol, 
+    const size_t iter, 
+    const size_t iter_max, 
+    const int conv_failure_switch, 
+    algo_settings_t* settings_inp
+)
 {
     success = false;
 
@@ -68,7 +70,7 @@ error_reporting(Vec_t& out_vals,
             printf("optim failure: iter_max reached before convergence could be achieved.\n");
             printf("optim failure: best guess:\n");
 
-            OPTIM_MATOPS_COUT << OPTIM_MATOPS_TRANSPOSE_IN_PLACE(x_p) << "\n";
+            BMO_MATOPS_COUT << BMO_MATOPS_TRANSPOSE_INPLACE(x_p) << "\n";
             std::cout << "iterations: " << iter << ". error: " << err << std::endl;
         }
     } else {
@@ -85,13 +87,15 @@ error_reporting(Vec_t& out_vals,
 
 inline
 void
-error_reporting(Vec_t& out_vals, 
-                const Vec_t& x_p, 
-                std::function<double (const Vec_t& vals_inp, Vec_t* grad_out, void* opt_data)> opt_objfn, 
-                void* opt_data,
-                bool& success, 
-                const int conv_failure_switch, 
-                algo_settings_t* settings_inp)
+error_reporting(
+    ColVec_t& out_vals, 
+    const ColVec_t& x_p, 
+    std::function<fp_t (const ColVec_t& vals_inp, ColVec_t* grad_out, void* opt_data)> opt_objfn, 
+    void* opt_data,
+    bool& success, 
+    const int conv_failure_switch, 
+    algo_settings_t* settings_inp
+)
 {
     if (conv_failure_switch == 0 || conv_failure_switch == 1) {
         out_vals = x_p;
@@ -111,17 +115,19 @@ error_reporting(Vec_t& out_vals,
 
 inline
 void
-error_reporting(Vec_t& out_vals, 
-                const Vec_t& x_p, 
-                std::function<Vec_t (const Vec_t& vals_inp, void* opt_data)> opt_objfn, 
-                void* opt_data,
-                bool& success, 
-                const double err, 
-                const double err_tol, 
-                const size_t iter, 
-                const size_t iter_max, 
-                const int conv_failure_switch, 
-                algo_settings_t* settings_inp)
+error_reporting(
+    ColVec_t& out_vals, 
+    const ColVec_t& x_p, 
+    std::function<ColVec_t (const ColVec_t& vals_inp, void* opt_data)> opt_objfn, 
+    void* opt_data,
+    bool& success, 
+    const fp_t err, 
+    const fp_t err_tol, 
+    const size_t iter, 
+    const size_t iter_max, 
+    const int conv_failure_switch, 
+    algo_settings_t* settings_inp
+)
 {
     success = false;
 
@@ -155,13 +161,13 @@ error_reporting(Vec_t& out_vals,
             printf("optim failure: iter_max not reached but algorithm stopped.\n");
             printf("optim failure: best guess:\n");
 
-            OPTIM_MATOPS_COUT << OPTIM_MATOPS_TRANSPOSE_IN_PLACE(x_p) << "\n";
+            BMO_MATOPS_COUT << BMO_MATOPS_TRANSPOSE_INPLACE(x_p) << "\n";
             std::cout << "error: " << err << std::endl;
         } else {
             printf("optim failure: iter_max reached before convergence could be achieved.\n");
             printf("optim failure: best guess:\n");
 
-            OPTIM_MATOPS_COUT << OPTIM_MATOPS_TRANSPOSE_IN_PLACE(x_p) << "\n";
+            BMO_MATOPS_COUT << BMO_MATOPS_TRANSPOSE_INPLACE(x_p) << "\n";
             std::cout << "error: " << err << std::endl;
         }
     } else {
@@ -180,21 +186,23 @@ error_reporting(Vec_t& out_vals,
 
 inline
 void
-error_reporting(Vec_t& out_vals, 
-                const Vec_t& x_p, 
-                std::function<double (const Vec_t& vals_inp, Vec_t* grad_out, Mat_t* hess_out, void* opt_data)> opt_objfn, 
-                void* opt_data,
-                bool& success, 
-                const double err, 
-                const double err_tol, 
-                const size_t iter, 
-                const size_t iter_max, 
-                const int conv_failure_switch, 
-                algo_settings_t* settings_inp)
+error_reporting(
+    ColVec_t& out_vals, 
+    const ColVec_t& x_p, 
+    std::function<fp_t (const ColVec_t& vals_inp, ColVec_t* grad_out, Mat_t* hess_out, void* opt_data)> opt_objfn, 
+    void* opt_data,
+    bool& success, 
+    const fp_t err, 
+    const fp_t err_tol, 
+    const size_t iter, 
+    const size_t iter_max, 
+    const int conv_failure_switch, 
+    algo_settings_t* settings_inp
+)
 {
-    std::function<double (const Vec_t& vals_inp, Vec_t* grad_out, void* opt_data)> lam_objfn \
-    = [opt_objfn] (const Vec_t& vals_inp, Vec_t* grad_out, void* opt_data) 
-    -> double 
+    std::function<fp_t (const ColVec_t& vals_inp, ColVec_t* grad_out, void* opt_data)> lam_objfn \
+    = [opt_objfn] (const ColVec_t& vals_inp, ColVec_t* grad_out, void* opt_data) 
+    -> fp_t 
     {
         return opt_objfn(vals_inp,grad_out,nullptr,opt_data);
     };

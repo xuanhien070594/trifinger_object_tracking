@@ -487,12 +487,12 @@ void PoseDetector::optimize_using_optim(
     // unsigned int num_pixels_per_mask = 15;
     // MasksPixels sampled_masks_pixels =
     //     sample_masks_pixels(masks_pixels, num_pixels_per_mask);
-    unsigned int num_samples = 150;
+    unsigned int num_samples = 2500;
     MasksPixels sampled_masks_pixels =
         sample_masks_pixels_proportionally(masks_pixels, num_samples);
 
     // todo: what is the best value here?
-    float distance_cost_scaling = 5 * 1e-2;
+    float distance_cost_scaling = 1;
     float invisibility_cost_scaling = 1.0;
     float height_cost_scaling = 10.0;
 
@@ -504,8 +504,8 @@ void PoseDetector::optimize_using_optim(
     settings.print_level = 0;
 
     settings.vals_bound = true;
-    settings.lower_bounds = {-0.35, -0.35, -0.1, -1e4, -1e4, -1e4};
-    settings.upper_bounds = {0.35, 0.35, 0.35, 1e4, 1e4, 1e4};
+    settings.lower_bounds = {-0.35, -0.35, -0.1, -1e1, -1e1, -1e1};
+    settings.upper_bounds = {0.35, 0.35, 0.35, 1e1, 1e1, 1e1};
     settings.de_settings.initial_lb = {-0.2, -0.2, 0, -1, -1, -1};
     settings.de_settings.initial_ub = {0.2, 0.2, 0.2, 1, 1, 1};
 

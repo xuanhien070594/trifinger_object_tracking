@@ -1,6 +1,6 @@
 /*################################################################################
   ##
-  ##   Copyright (C) 2016-2020 Keith O'Hara
+  ##   Copyright (C) 2016-2023 Keith O'Hara
   ##
   ##   This file is part of the OptimLib C++ library.
   ##
@@ -18,22 +18,22 @@
   ##
   ################################################################################*/
 
-/*
- * print end line
- */
+#ifndef OPTIMLIB_MISC_INCLUDES
+#define OPTIMLIB_MISC_INCLUDES
 
-#ifndef OPTIM_MATOPS_ENDL
+// structs
+#include "misc/optim_structs.hpp"
 
-//
+// trace
+#include "misc/optim_trace.hpp"
 
-#ifdef OPTIM_ENABLE_ARMA_WRAPPERS
-    #define OPTIM_MATOPS_ENDL arma::endl
-#endif
-
-#ifdef OPTIM_ENABLE_EIGEN_WRAPPERS
-    #define OPTIM_MATOPS_ENDL std::endl
-#endif
-
-//
+// utility functions
+#include "determine_bounds_type.hpp"
+#include "bounds_check.hpp"
+#include "error_reporting.hpp"
+#include "jacobian_adjust.hpp"
+#include "numerical_gradient.hpp"
+#include "numerical_hessian.hpp"
+#include "transform_vals.hpp"
 
 #endif

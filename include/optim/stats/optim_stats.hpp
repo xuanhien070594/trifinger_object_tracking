@@ -1,6 +1,6 @@
 /*################################################################################
   ##
-  ##   Copyright (C) 2016-2020 Keith O'Hara
+  ##   Copyright (C) 2016-2023 Keith O'Hara
   ##
   ##   This file is part of the OptimLib C++ library.
   ##
@@ -18,18 +18,9 @@
   ##
   ################################################################################*/
 
-#ifndef OPTIM_MATOPS_POW
+#ifndef OPTIMLIB_STATS_INCLUDES
+#define OPTIMLIB_STATS_INCLUDES
 
-//
-
-#ifdef OPTIM_ENABLE_ARMA_WRAPPERS
-    #define OPTIM_MATOPS_POW(x,a) arma::pow(x,a)
-#endif
-
-#ifdef OPTIM_ENABLE_EIGEN_WRAPPERS
-    #define OPTIM_MATOPS_POW(x,a) (x).array().pow(a).matrix()
-#endif
-
-//
+#include "seed_values.hpp"
 
 #endif

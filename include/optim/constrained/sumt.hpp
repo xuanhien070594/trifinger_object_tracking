@@ -1,6 +1,6 @@
 /*################################################################################
   ##
-  ##   Copyright (C) 2016-2020 Keith O'Hara
+  ##   Copyright (C) 2016-2023 Keith O'Hara
   ##
   ##   This file is part of the OptimLib C++ library.
   ##
@@ -41,11 +41,13 @@
  */
 
 bool 
-sumt(Vec_t& init_out_vals, 
-     std::function<double (const Vec_t& vals_inp, Vec_t* grad_out, void* opt_data)> opt_objfn, 
-     void* opt_data,
-     std::function<Vec_t (const Vec_t& vals_inp, Mat_t* jacob_out, void* constr_data)> constr_fn, 
-     void* constr_data);
+sumt(
+    ColVec_t& init_out_vals, 
+    std::function<fp_t (const ColVec_t& vals_inp, ColVec_t* grad_out, void* opt_data)> opt_objfn, 
+    void* opt_data,
+    std::function<ColVec_t (const ColVec_t& vals_inp, Mat_t* jacob_out, void* constr_data)> constr_fn, 
+    void* constr_data
+);
 
 /**
  * @brief Sequential Unconstrained Minimization Technique
@@ -64,12 +66,14 @@ sumt(Vec_t& init_out_vals,
  */
 
 bool 
-sumt(Vec_t& init_out_vals, 
-     std::function<double (const Vec_t& vals_inp, Vec_t* grad_out, void* opt_data)> opt_objfn, 
-     void* opt_data,
-     std::function<Vec_t (const Vec_t& vals_inp, Mat_t* jacob_out, void* constr_data)> constr_fn, 
-     void* constr_data, 
-     algo_settings_t& settings);
+sumt(
+    ColVec_t& init_out_vals, 
+    std::function<fp_t (const ColVec_t& vals_inp, ColVec_t* grad_out, void* opt_data)> opt_objfn, 
+    void* opt_data,
+    std::function<ColVec_t (const ColVec_t& vals_inp, Mat_t* jacob_out, void* constr_data)> constr_fn, 
+    void* constr_data, 
+    algo_settings_t& settings
+);
 
 //
 // internal
@@ -78,25 +82,29 @@ namespace internal
 {
 
 struct sumt_data_t {
-    double c_pen;
+    fp_t c_pen;
 };
 
 inline
-double
-mt_sup_norm(const double a, 
-            const double b, 
-            const double c)
+fp_t
+mt_sup_norm(
+    const fp_t a, 
+    const fp_t b, 
+    const fp_t c
+)
 {
     return std::max( std::max(std::abs(a), std::abs(b)), std::abs(c) );
 }
 
 bool 
-sumt_impl(Vec_t& init_out_vals, 
-          std::function<double (const Vec_t& vals_inp, Vec_t* grad_out, void* opt_data)> opt_objfn, 
-          void* opt_data,
-          std::function<Vec_t (const Vec_t& vals_inp, Mat_t* jacob_out, void* constr_data)> constr_fn, 
-          void* constr_data, 
-          algo_settings_t* settings_inp);
+sumt_impl(
+    ColVec_t& init_out_vals, 
+    std::function<fp_t (const ColVec_t& vals_inp, ColVec_t* grad_out, void* opt_data)> opt_objfn, 
+    void* opt_data,
+    std::function<ColVec_t (const ColVec_t& vals_inp, Mat_t* jacob_out, void* constr_data)> constr_fn, 
+    void* constr_data, 
+    algo_settings_t* settings_inp
+);
 
 }
 
@@ -105,12 +113,13 @@ sumt_impl(Vec_t& init_out_vals,
 inline
 bool
 internal::sumt_impl(
-    Vec_t& init_out_vals, 
-    std::function<double (const Vec_t& vals_inp, Vec_t* grad_out, void* opt_data)> opt_objfn, 
+    ColVec_t& init_out_vals, 
+    std::function<fp_t (const ColVec_t& vals_inp, ColVec_t* grad_out, void* opt_data)> opt_objfn, 
     void* opt_data,
-    std::function<Vec_t (const Vec_t& vals_inp, Mat_t* jacob_out, void* constr_data)> constr_fn, 
+    std::function<ColVec_t (const ColVec_t& vals_inp, Mat_t* jacob_out, void* constr_data)> constr_fn, 
     void* constr_data, 
-    algo_settings_t* settings_inp)
+    algo_settings_t* settings_inp
+)
 {
     // notation: 'p' stands for '+1'.
 
@@ -126,43 +135,43 @@ internal::sumt_impl(
 
     const int conv_failure_switch = settings.conv_failure_switch;
     const size_t iter_max = settings.iter_max;
-    const double rel_sol_change_tol = settings.rel_sol_change_tol;
+    const fp_t rel_sol_change_tol = settings.rel_sol_change_tol;
 
-    const double par_eta = settings.sumt_settings.par_eta; // growth of penalty parameter
+    const fp_t par_eta = settings.sumt_settings.par_eta; // growth of penalty parameter
 
     // lambda function that combines the objective function with the constraints
 
-    std::function<double (const Vec_t& vals_inp, Vec_t* grad_out, void* sumt_data)> sumt_objfn \
-    = [opt_objfn, opt_data, constr_fn, constr_data] (const Vec_t& vals_inp, Vec_t* grad_out, void* sumt_data) \
-    -> double
+    std::function<fp_t (const ColVec_t& vals_inp, ColVec_t* grad_out, void* sumt_data)> sumt_objfn \
+    = [opt_objfn, opt_data, constr_fn, constr_data] (const ColVec_t& vals_inp, ColVec_t* grad_out, void* sumt_data) \
+    -> fp_t
     {
         sumt_data_t *d = reinterpret_cast<sumt_data_t*>(sumt_data);
-        double c_pen = d->c_pen;
+        fp_t c_pen = d->c_pen;
         
-        const size_t n_vals = OPTIM_MATOPS_SIZE(vals_inp);
+        const size_t n_vals = BMO_MATOPS_SIZE(vals_inp);
 
-        Vec_t grad_obj(n_vals);
+        ColVec_t grad_obj(n_vals);
         Mat_t jacob_constr;
 
         //
 
-        double ret = 1E08;
+        fp_t ret = 1E08;
 
-        Vec_t constr_vals = constr_fn(vals_inp, &jacob_constr, constr_data);
-        Vec_t tmp_vec = constr_vals;
+        ColVec_t constr_vals = constr_fn(vals_inp, &jacob_constr, constr_data);
+        ColVec_t tmp_vec = constr_vals;
 
-        reset_negative_values(tmp_vec, constr_vals);
-        reset_negative_rows(tmp_vec, jacob_constr);
+        bmo::reset_negative_values(tmp_vec, constr_vals);
+        bmo::reset_negative_rows(tmp_vec, jacob_constr);
 
         //
 
-        double constr_valsq = OPTIM_MATOPS_DOT_PROD(constr_vals,constr_vals);
+        fp_t constr_valsq = BMO_MATOPS_DOT_PROD(constr_vals,constr_vals);
 
         if (constr_valsq > 0) {
             ret = opt_objfn(vals_inp,&grad_obj,opt_data) + c_pen*(constr_valsq / 2.0);
 
             if (grad_out) {
-                *grad_out = grad_obj + c_pen * OPTIM_MATOPS_TRANSPOSE( OPTIM_MATOPS_COLWISE_SUM(jacob_constr) );
+                *grad_out = grad_obj + c_pen * BMO_MATOPS_TRANSPOSE( BMO_MATOPS_COLWISE_SUM(jacob_constr) );
             }
         } else {
             ret = opt_objfn(vals_inp, &grad_obj, opt_data);
@@ -179,17 +188,17 @@ internal::sumt_impl(
 
     // initialization
     
-    Vec_t x = init_out_vals;
+    ColVec_t x = init_out_vals;
 
     sumt_data_t sumt_data;
     sumt_data.c_pen = 1.0;
 
-    Vec_t x_p = x;
+    ColVec_t x_p = x;
 
     // begin loop
     
     size_t iter = 0;
-    double rel_sol_change = 2*rel_sol_change_tol;
+    fp_t rel_sol_change = 2*rel_sol_change_tol;
 
     while (rel_sol_change > rel_sol_change_tol && iter < iter_max) {
         ++iter;
@@ -199,7 +208,7 @@ internal::sumt_impl(
         bfgs(x_p, sumt_objfn, &sumt_data, settings);
 
         if (iter % 10 == 0) {
-            rel_sol_change = OPTIM_MATOPS_L1NORM( OPTIM_MATOPS_ARRAY_DIV_ARRAY((x_p - x), (OPTIM_MATOPS_ARRAY_ADD_SCALAR(OPTIM_MATOPS_ABS(x), 1.0e-08)) ) );
+            rel_sol_change = BMO_MATOPS_L1NORM( BMO_MATOPS_ARRAY_DIV_ARRAY((x_p - x), (BMO_MATOPS_ARRAY_ADD_SCALAR(BMO_MATOPS_ABS(x), OPTIM_FPN_SMALL_NUMBER)) ) );
         }
         
         //
@@ -220,11 +229,12 @@ internal::sumt_impl(
 inline
 bool
 sumt(
-    Vec_t& init_out_vals, 
-    std::function<double (const Vec_t& vals_inp, Vec_t* grad_out, void* opt_data)> opt_objfn, 
+    ColVec_t& init_out_vals, 
+    std::function<fp_t (const ColVec_t& vals_inp, ColVec_t* grad_out, void* opt_data)> opt_objfn, 
     void* opt_data,
-    std::function<Vec_t (const Vec_t& vals_inp, Mat_t* jacob_out, void* constr_data)> constr_fn, 
-    void* constr_data)
+    std::function<ColVec_t (const ColVec_t& vals_inp, Mat_t* jacob_out, void* constr_data)> constr_fn, 
+    void* constr_data
+)
 {
     return internal::sumt_impl(init_out_vals, opt_objfn, opt_data, constr_fn, constr_data, nullptr);
 }
@@ -232,12 +242,13 @@ sumt(
 inline
 bool
 sumt(
-    Vec_t& init_out_vals, 
-    std::function<double (const Vec_t& vals_inp, Vec_t* grad_out, void* opt_data)> opt_objfn, 
+    ColVec_t& init_out_vals, 
+    std::function<fp_t (const ColVec_t& vals_inp, ColVec_t* grad_out, void* opt_data)> opt_objfn, 
     void* opt_data,
-    std::function<Vec_t (const Vec_t& vals_inp, Mat_t* jacob_out, void* constr_data)> constr_fn, 
+    std::function<ColVec_t (const ColVec_t& vals_inp, Mat_t* jacob_out, void* constr_data)> constr_fn, 
     void* constr_data, 
-    algo_settings_t& settings)
+    algo_settings_t& settings
+)
 {
     return internal::sumt_impl(init_out_vals, opt_objfn, opt_data, constr_fn, constr_data, &settings);
 }

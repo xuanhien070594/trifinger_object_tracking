@@ -1,6 +1,6 @@
 /*################################################################################
   ##
-  ##   Copyright (C) 2016-2020 Keith O'Hara
+  ##   Copyright (C) 2016-2023 Keith O'Hara
   ##
   ##   This file is part of the OptimLib C++ library.
   ##
@@ -39,9 +39,11 @@
  */
 
 bool 
-cg(Vec_t& init_out_vals, 
-   std::function<double (const Vec_t& vals_inp, Vec_t* grad_out, void* opt_data)> opt_objfn, 
-   void* opt_data);
+cg(
+    ColVec_t& init_out_vals, 
+    std::function<fp_t (const ColVec_t& vals_inp, ColVec_t* grad_out, void* opt_data)> opt_objfn, 
+    void* opt_data
+);
 
 /**
  * @brief The Nonlinear Conjugate Gradient (CG) Optimization Algorithm
@@ -58,10 +60,12 @@ cg(Vec_t& init_out_vals,
  */
 
 bool
-cg(Vec_t& init_out_vals, 
-   std::function<double (const Vec_t& vals_inp, Vec_t* grad_out, void* opt_data)> opt_objfn, 
-   void* opt_data, 
-   algo_settings_t& settings);
+cg(
+    ColVec_t& init_out_vals, 
+    std::function<fp_t (const ColVec_t& vals_inp, ColVec_t* grad_out, void* opt_data)> opt_objfn, 
+    void* opt_data, 
+    algo_settings_t& settings
+);
 
 //
 // internal
@@ -70,51 +74,55 @@ namespace internal
 {
 
 bool 
-cg_impl(Vec_t& init_out_vals, 
-        std::function<double (const Vec_t& vals_inp, Vec_t* grad_out, void* opt_data)> opt_objfn, 
-        void* opt_data, 
-        algo_settings_t* settings_inp);
+cg_impl(
+    ColVec_t& init_out_vals, 
+    std::function<fp_t (const ColVec_t& vals_inp, ColVec_t* grad_out, void* opt_data)> opt_objfn, 
+    void* opt_data, 
+    algo_settings_t* settings_inp
+);
 
 // update function
 
 inline
-double
-cg_update(const Vec_t& grad, 
-          const Vec_t& grad_p, 
-          const Vec_t& direc, 
-          const uint_t iter, 
-          const uint_t cg_method, 
-          const double cg_restart_threshold)
+fp_t
+cg_update(
+    const ColVec_t& grad, 
+    const ColVec_t& grad_p, 
+    const ColVec_t& direc, 
+    const uint_t iter, 
+    const uint_t cg_method, 
+    const fp_t cg_restart_threshold
+)
 {
     // threshold test
-    double ratio_value = std::abs( OPTIM_MATOPS_DOT_PROD(grad_p,grad) ) / OPTIM_MATOPS_DOT_PROD(grad_p,grad_p);
+    fp_t ratio_value = std::abs( BMO_MATOPS_DOT_PROD(grad_p,grad) ) / BMO_MATOPS_DOT_PROD(grad_p,grad_p);
 
     if ( ratio_value > cg_restart_threshold ) {
         return 0.0;
     } else {
-        double beta = 1.0;
+        fp_t beta = 1.0;
 
         switch (cg_method)
         {
             case 1: // Fletcher-Reeves (FR)
             {
-                beta = OPTIM_MATOPS_DOT_PROD(grad_p,grad_p) / OPTIM_MATOPS_DOT_PROD(grad,grad);
+                beta = BMO_MATOPS_DOT_PROD(grad_p,grad_p) / BMO_MATOPS_DOT_PROD(grad,grad);
                 break;
             }
 
             case 2: // Polak-Ribiere (PR) + 
             {
-                beta = OPTIM_MATOPS_DOT_PROD(grad_p, grad_p - grad) / OPTIM_MATOPS_DOT_PROD(grad,grad); // max(.,0.0) moved to end
+                beta = BMO_MATOPS_DOT_PROD(grad_p, grad_p - grad) / BMO_MATOPS_DOT_PROD(grad,grad); // max(.,0.0) moved to end
                 break;
             }
 
             case 3: // FR-PR hybrid, see eq. 5.48 in Nocedal and Wright
             {
                 if (iter > 1) {
-                    const double beta_denom = OPTIM_MATOPS_DOT_PROD(grad, grad);
+                    const fp_t beta_denom = BMO_MATOPS_DOT_PROD(grad, grad);
                     
-                    const double beta_FR = OPTIM_MATOPS_DOT_PROD(grad_p, grad_p) / beta_denom;
-                    const double beta_PR = OPTIM_MATOPS_DOT_PROD(grad_p, grad_p - grad) / beta_denom;
+                    const fp_t beta_FR = BMO_MATOPS_DOT_PROD(grad_p, grad_p) / beta_denom;
+                    const fp_t beta_PR = BMO_MATOPS_DOT_PROD(grad_p, grad_p - grad) / beta_denom;
                     
                     if (beta_PR < - beta_FR) {
                         beta = -beta_FR;
@@ -125,31 +133,31 @@ cg_update(const Vec_t& grad,
                     }
                 } else {
                     // default to PR+
-                    beta = OPTIM_MATOPS_DOT_PROD(grad_p,grad_p - grad) / OPTIM_MATOPS_DOT_PROD(grad,grad); // max(.,0.0) moved to end
+                    beta = BMO_MATOPS_DOT_PROD(grad_p,grad_p - grad) / BMO_MATOPS_DOT_PROD(grad,grad); // max(.,0.0) moved to end
                 }
                 break;
             }
 
             case 4: // Hestenes-Stiefel
             {
-                beta = OPTIM_MATOPS_DOT_PROD(grad_p,grad_p - grad) / OPTIM_MATOPS_DOT_PROD(grad_p - grad,direc);
+                beta = BMO_MATOPS_DOT_PROD(grad_p,grad_p - grad) / BMO_MATOPS_DOT_PROD(grad_p - grad,direc);
                 break;
             }
 
             case 5: // Dai-Yuan
             {
-                beta = OPTIM_MATOPS_DOT_PROD(grad_p,grad_p) / OPTIM_MATOPS_DOT_PROD(grad_p - grad,direc);
+                beta = BMO_MATOPS_DOT_PROD(grad_p,grad_p) / BMO_MATOPS_DOT_PROD(grad_p - grad,direc);
                 break;
             }
 
             case 6: // Hager-Zhang
             {
-                Vec_t y = grad_p - grad;
+                ColVec_t y = grad_p - grad;
 
-                Vec_t term_1 = y - 2*direc*(OPTIM_MATOPS_DOT_PROD(y,y) / OPTIM_MATOPS_DOT_PROD(y,direc));
-                Vec_t term_2 = grad_p / OPTIM_MATOPS_DOT_PROD(y,direc);
+                ColVec_t term_1 = y - 2*direc*(BMO_MATOPS_DOT_PROD(y,y) / BMO_MATOPS_DOT_PROD(y,direc));
+                ColVec_t term_2 = grad_p / BMO_MATOPS_DOT_PROD(y,direc);
 
-                beta = OPTIM_MATOPS_DOT_PROD(term_1,term_2);
+                beta = BMO_MATOPS_DOT_PROD(term_1,term_2);
                 break;
             }
             
@@ -162,7 +170,7 @@ cg_update(const Vec_t& grad,
 
         //
 
-        return std::max(beta, 0.0);
+        return std::max(beta, fp_t(0.0));
     }
 }
 
@@ -173,16 +181,17 @@ cg_update(const Vec_t& grad,
 inline
 bool
 internal::cg_impl(
-    Vec_t& init_out_vals, 
-    std::function<double (const Vec_t& vals_inp, Vec_t* grad_out, void* opt_data)> opt_objfn, 
+    ColVec_t& init_out_vals, 
+    std::function<fp_t (const ColVec_t& vals_inp, ColVec_t* grad_out, void* opt_data)> opt_objfn, 
     void* opt_data, 
-    algo_settings_t* settings_inp)
+    algo_settings_t* settings_inp
+)
 {
     // notation: 'p' stands for '+1'.
     
     bool success = false;
     
-    const size_t n_vals = OPTIM_MATOPS_SIZE(init_out_vals);
+    const size_t n_vals = BMO_MATOPS_SIZE(init_out_vals);
 
     // CG settings
 
@@ -196,46 +205,44 @@ internal::cg_impl(
     
     const uint_t conv_failure_switch = settings.conv_failure_switch;
     const size_t iter_max = settings.iter_max;
-    const double grad_err_tol = settings.grad_err_tol;
-    double rel_sol_change_tol = settings.rel_sol_change_tol;
+    const fp_t grad_err_tol = settings.grad_err_tol;
+    fp_t rel_sol_change_tol = settings.rel_sol_change_tol;
 
     if (!settings.cg_settings.use_rel_sol_change_crit) {
         rel_sol_change_tol = -1.0;
     }
 
     const uint_t cg_method = settings.cg_settings.method; // cg update method
-    const double cg_restart_threshold = settings.cg_settings.restart_threshold;
+    const fp_t cg_restart_threshold = settings.cg_settings.restart_threshold;
 
-    const double wolfe_cons_1 = settings.cg_settings.wolfe_cons_1; // line search tuning parameter
-    const double wolfe_cons_2 = settings.cg_settings.wolfe_cons_2;
+    const fp_t wolfe_cons_1 = settings.cg_settings.wolfe_cons_1; // line search tuning parameter
+    const fp_t wolfe_cons_2 = settings.cg_settings.wolfe_cons_2;
 
     const bool vals_bound = settings.vals_bound;
     
-    const Vec_t lower_bounds = settings.lower_bounds;
-    const Vec_t upper_bounds = settings.upper_bounds;
+    const ColVec_t lower_bounds = settings.lower_bounds;
+    const ColVec_t upper_bounds = settings.upper_bounds;
 
-    const VecInt_t bounds_type = determine_bounds_type(vals_bound, n_vals, lower_bounds, upper_bounds);
+    const ColVecInt_t bounds_type = determine_bounds_type(vals_bound, n_vals, lower_bounds, upper_bounds);
 
     // lambda function for box constraints
 
-    std::function<double (const Vec_t& vals_inp, Vec_t* grad_out, void* box_data)> box_objfn \
-    = [opt_objfn, vals_bound, bounds_type, lower_bounds, upper_bounds] (const Vec_t& vals_inp, Vec_t* grad_out, void* opt_data) \
-    -> double 
+    std::function<fp_t (const ColVec_t& vals_inp, ColVec_t* grad_out, void* box_data)> box_objfn \
+    = [opt_objfn, vals_bound, bounds_type, lower_bounds, upper_bounds] (const ColVec_t& vals_inp, ColVec_t* grad_out, void* opt_data) \
+    -> fp_t 
     {
         if (vals_bound) {
-            Vec_t vals_inv_trans = inv_transform(vals_inp, bounds_type, lower_bounds, upper_bounds);
-            double ret;
+            ColVec_t vals_inv_trans = inv_transform(vals_inp, bounds_type, lower_bounds, upper_bounds);
+            fp_t ret;
             
             if (grad_out) {
-                Vec_t grad_obj = *grad_out;
+                ColVec_t grad_obj = *grad_out;
 
                 ret = opt_objfn(vals_inv_trans,&grad_obj,opt_data);
 
-                // Mat_t jacob_matrix = jacobian_adjust(vals_inp,bounds_type,lower_bounds,upper_bounds);
-                Vec_t jacob_vec = OPTIM_MATOPS_EXTRACT_DIAG( jacobian_adjust(vals_inp,bounds_type,lower_bounds,upper_bounds) );
+                ColVec_t jacob_vec = BMO_MATOPS_EXTRACT_DIAG( jacobian_adjust(vals_inp,bounds_type,lower_bounds,upper_bounds) );
 
-                // *grad_out = jacob_matrix * grad_obj; // no need for transpose as jacob_matrix is diagonal
-                *grad_out = OPTIM_MATOPS_HADAMARD_PROD(jacob_vec, grad_obj);
+                *grad_out = BMO_MATOPS_HADAMARD_PROD(jacob_vec, grad_obj);
             } else {
                 ret = opt_objfn(vals_inv_trans, nullptr, opt_data);
             }
@@ -248,22 +255,22 @@ internal::cg_impl(
 
     // initialization
 
-    if (! OPTIM_MATOPS_IS_FINITE(init_out_vals) ) {
+    if (! BMO_MATOPS_IS_FINITE(init_out_vals) ) {
         printf("gd error: non-finite initial value(s).\n");
         return false;
     }
 
-    Vec_t x = init_out_vals;
-    Vec_t d = OPTIM_MATOPS_ZERO_VEC(n_vals);
+    ColVec_t x = init_out_vals;
+    ColVec_t d = BMO_MATOPS_ZERO_COLVEC(n_vals);
 
     if (vals_bound) { // should we transform the parameters?
         x = transform(x, bounds_type, lower_bounds, upper_bounds);
     }
 
-    Vec_t grad(n_vals); // gradient
+    ColVec_t grad(n_vals); // gradient
     box_objfn(x, &grad, opt_data);
 
-    double grad_err = OPTIM_MATOPS_L2NORM(grad);
+    fp_t grad_err = BMO_MATOPS_L2NORM(grad);
 
     OPTIM_CG_TRACE(-1, grad_err, 0.0, x, d, grad, 0.0);
 
@@ -273,20 +280,24 @@ internal::cg_impl(
 
     //
 
-    double t_init = 1.0; // initial value for line search
+    fp_t t_init = 1.0; // initial value for line search
 
     d = - grad;
-    Vec_t x_p = x, grad_p = grad;
+    ColVec_t x_p = x, grad_p = grad;
 
-    double t = line_search_mt(t_init, x_p, grad_p, d, &wolfe_cons_1, &wolfe_cons_2, box_objfn, opt_data);
+    fp_t t = line_search_mt(t_init, x_p, grad_p, d, &wolfe_cons_1, &wolfe_cons_2, box_objfn, opt_data);
 
-    grad_err = OPTIM_MATOPS_L2NORM(grad_p);
-    double rel_sol_change = OPTIM_MATOPS_L1NORM( OPTIM_MATOPS_ARRAY_DIV_ARRAY( (x_p - x), (OPTIM_MATOPS_ARRAY_ADD_SCALAR(OPTIM_MATOPS_ABS(x), 1.0e-08)) ) );
+    grad_err = BMO_MATOPS_L2NORM(grad_p);
+    fp_t rel_sol_change = BMO_MATOPS_L1NORM( BMO_MATOPS_ARRAY_DIV_ARRAY( (x_p - x), (BMO_MATOPS_ARRAY_ADD_SCALAR(BMO_MATOPS_ABS(x), OPTIM_FPN_SMALL_NUMBER)) ) );
     
     OPTIM_CG_TRACE(0, grad_err, rel_sol_change, x, d, grad, 0.0);
 
     if (grad_err <= grad_err_tol) {
-        init_out_vals = x_p;
+        if (vals_bound) {
+    	    init_out_vals = inv_transform(x_p, bounds_type, lower_bounds, upper_bounds);
+    	} else {
+            init_out_vals = x_p;
+        }
         return true;
     }
 
@@ -299,11 +310,11 @@ internal::cg_impl(
 
         //
 
-        double beta = cg_update(grad, grad_p, d, iter, cg_method, cg_restart_threshold);
+        fp_t beta = cg_update(grad, grad_p, d, iter, cg_method, cg_restart_threshold);
 
-        Vec_t d_p = - grad_p + beta*d;
+        ColVec_t d_p = - grad_p + beta*d;
 
-        t_init = t * (OPTIM_MATOPS_DOT_PROD(grad,d) / OPTIM_MATOPS_DOT_PROD(grad_p,d_p));
+        t_init = t * (BMO_MATOPS_DOT_PROD(grad,d) / BMO_MATOPS_DOT_PROD(grad_p,d_p));
 
         grad = grad_p;
 
@@ -311,8 +322,8 @@ internal::cg_impl(
 
         //
 
-        grad_err = OPTIM_MATOPS_L2NORM(grad_p);
-        rel_sol_change = OPTIM_MATOPS_L1NORM( OPTIM_MATOPS_ARRAY_DIV_ARRAY( (x_p - x), (OPTIM_MATOPS_ARRAY_ADD_SCALAR(OPTIM_MATOPS_ABS(x), 1.0e-08)) ) );
+        grad_err = BMO_MATOPS_L2NORM(grad_p);
+        rel_sol_change = BMO_MATOPS_L1NORM( BMO_MATOPS_ARRAY_DIV_ARRAY( (x_p - x), (BMO_MATOPS_ARRAY_ADD_SCALAR(BMO_MATOPS_ABS(x), OPTIM_FPN_SMALL_NUMBER)) ) );
 
         d = d_p;
         x = x_p;
@@ -340,9 +351,10 @@ internal::cg_impl(
 inline
 bool
 cg(
-    Vec_t& init_out_vals, 
-    std::function<double (const Vec_t& vals_inp, Vec_t* grad_out, void* opt_data)> opt_objfn, 
-    void* opt_data)
+    ColVec_t& init_out_vals, 
+    std::function<fp_t (const ColVec_t& vals_inp, ColVec_t* grad_out, void* opt_data)> opt_objfn, 
+    void* opt_data
+)
 {
     return internal::cg_impl(init_out_vals,opt_objfn,opt_data,nullptr);
 }
@@ -350,10 +362,11 @@ cg(
 inline
 bool
 cg(
-    Vec_t& init_out_vals, 
-    std::function<double (const Vec_t& vals_inp, Vec_t* grad_out, void* opt_data)> opt_objfn, 
+    ColVec_t& init_out_vals, 
+    std::function<fp_t (const ColVec_t& vals_inp, ColVec_t* grad_out, void* opt_data)> opt_objfn, 
     void* opt_data, 
-    algo_settings_t& settings)
+    algo_settings_t& settings
+)
 {
     return internal::cg_impl(init_out_vals,opt_objfn,opt_data,&settings);
 }

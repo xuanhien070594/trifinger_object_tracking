@@ -1,6 +1,6 @@
 /*################################################################################
   ##
-  ##   Copyright (C) 2016-2020 Keith O'Hara
+  ##   Copyright (C) 2016-2023 Keith O'Hara
   ##
   ##   This file is part of the OptimLib C++ library.
   ##
@@ -39,9 +39,11 @@
  */
 
 bool
-nm(Vec_t& init_out_vals, 
-   std::function<double (const Vec_t& vals_inp, Vec_t* grad_out, void* opt_data)> opt_objfn, 
-   void* opt_data);
+nm(
+    ColVec_t& init_out_vals, 
+    std::function<fp_t (const ColVec_t& vals_inp, ColVec_t* grad_out, void* opt_data)> opt_objfn, 
+    void* opt_data
+);
 
 /**
  * @brief The Nelder-Mead Simplex-based Optimization Algorithm
@@ -58,10 +60,12 @@ nm(Vec_t& init_out_vals,
  */
 
 bool
-nm(Vec_t& init_out_vals, 
-   std::function<double (const Vec_t& vals_inp, Vec_t* grad_out, void* opt_data)> opt_objfn, 
-   void* opt_data, 
-   algo_settings_t& settings);
+nm(
+    ColVec_t& init_out_vals, 
+    std::function<fp_t (const ColVec_t& vals_inp, ColVec_t* grad_out, void* opt_data)> opt_objfn, 
+    void* opt_data, 
+    algo_settings_t& settings
+);
 
 //
 // internal
@@ -70,10 +74,12 @@ namespace internal
 {
 
 bool
-nm_impl(Vec_t& init_out_vals, 
-        std::function<double (const Vec_t& vals_inp, Vec_t* grad_out, void* opt_data)> opt_objfn, 
-        void* opt_data, 
-        algo_settings_t* settings_inp);
+nm_impl(
+    ColVec_t& init_out_vals, 
+    std::function<fp_t (const ColVec_t& vals_inp, ColVec_t* grad_out, void* opt_data)> opt_objfn, 
+    void* opt_data, 
+    algo_settings_t* settings_inp
+);
 
 }
 
@@ -82,14 +88,13 @@ nm_impl(Vec_t& init_out_vals,
 inline
 bool
 internal::nm_impl(
-    Vec_t& init_out_vals, 
-    std::function<double (const Vec_t& vals_inp, Vec_t* grad_out, void* opt_data)> opt_objfn, 
+    ColVec_t& init_out_vals, 
+    std::function<fp_t (const ColVec_t& vals_inp, ColVec_t* grad_out, void* opt_data)> opt_objfn, 
     void* opt_data, 
-    algo_settings_t* settings_inp)
+    algo_settings_t* settings_inp
+)
 {
     bool success = false;
-
-    const size_t n_vals = OPTIM_MATOPS_SIZE(init_out_vals);
 
     //
     // NM settings
@@ -100,35 +105,51 @@ internal::nm_impl(
         settings = *settings_inp;
     }
 
+    const size_t n_vals = (settings.nm_settings.custom_initial_simplex) ? BMO_MATOPS_NCOL(settings.nm_settings.initial_simplex_points) : BMO_MATOPS_SIZE(init_out_vals);
+
     const int print_level = settings.print_level;
     
     const uint_t conv_failure_switch = settings.conv_failure_switch;
     const size_t iter_max = settings.iter_max;
-    const double rel_objfn_change_tol = settings.rel_objfn_change_tol;
-    const double rel_sol_change_tol = settings.rel_sol_change_tol;
+    const fp_t rel_objfn_change_tol = settings.rel_objfn_change_tol;
+    const fp_t rel_sol_change_tol = settings.rel_sol_change_tol;
 
     // expansion / contraction parameters
     
-    const double par_alpha = settings.nm_settings.par_alpha;
-    const double par_beta  = (settings.nm_settings.adaptive_pars) ? 0.75 - 1.0 / (2.0*n_vals) : settings.nm_settings.par_beta;
-    const double par_gamma = (settings.nm_settings.adaptive_pars) ? 1.0 + 2.0 / n_vals        : settings.nm_settings.par_gamma;
-    const double par_delta = (settings.nm_settings.adaptive_pars) ? 1.0 - 1.0 / n_vals        : settings.nm_settings.par_delta;
+    const fp_t par_alpha = settings.nm_settings.par_alpha;
+    const fp_t par_beta  = (settings.nm_settings.adaptive_pars) ? 0.75 - 1.0 / (2.0*n_vals) : settings.nm_settings.par_beta;
+    const fp_t par_gamma = (settings.nm_settings.adaptive_pars) ? 1.0 + 2.0 / n_vals        : settings.nm_settings.par_gamma;
+    const fp_t par_delta = (settings.nm_settings.adaptive_pars) ? 1.0 - 1.0 / n_vals        : settings.nm_settings.par_delta;
 
     const bool vals_bound = settings.vals_bound;
     
-    const Vec_t lower_bounds = settings.lower_bounds;
-    const Vec_t upper_bounds = settings.upper_bounds;
+    const ColVec_t lower_bounds = settings.lower_bounds;
+    const ColVec_t upper_bounds = settings.upper_bounds;
 
-    const VecInt_t bounds_type = determine_bounds_type(vals_bound, n_vals, lower_bounds, upper_bounds);
+    const ColVecInt_t bounds_type = determine_bounds_type(vals_bound, n_vals, lower_bounds, upper_bounds);
+
+    // random sampling setup
+
+    int omp_n_threads = 1;
+
+#ifdef OPTIM_USE_OPENMP
+    if (settings.nm_settings.omp_n_threads > 0) {
+        omp_n_threads = settings.nm_settings.omp_n_threads;
+    } else {
+        omp_n_threads = std::max(1, static_cast<int>(omp_get_max_threads()) / 2); // OpenMP often detects the number of virtual/logical cores, not physical cores
+    }
+#else
+    (void)(omp_n_threads);
+#endif
 
     // lambda function for box constraints
 
-    std::function<double (const Vec_t& vals_inp, Vec_t* grad_out, void* box_data)> box_objfn \
-    = [opt_objfn, vals_bound, bounds_type, lower_bounds, upper_bounds] (const Vec_t& vals_inp, Vec_t* grad_out, void* opt_data) \
-    -> double 
+    std::function<fp_t (const ColVec_t& vals_inp, ColVec_t* grad_out, void* box_data)> box_objfn \
+    = [opt_objfn, vals_bound, bounds_type, lower_bounds, upper_bounds] (const ColVec_t& vals_inp, ColVec_t* grad_out, void* opt_data) \
+    -> fp_t 
     {
         if (vals_bound) {
-            Vec_t vals_inv_trans = inv_transform(vals_inp, bounds_type, lower_bounds, upper_bounds);
+            ColVec_t vals_inv_trans = inv_transform(vals_inp, bounds_type, lower_bounds, upper_bounds);
             
             return opt_objfn(vals_inv_trans,nullptr,opt_data);
         } else {
@@ -139,34 +160,41 @@ internal::nm_impl(
     //
     // setup
 
-    Vec_t simplex_fn_vals(n_vals+1);
-    Vec_t simplex_fn_vals_old(n_vals+1);
+    ColVec_t simplex_fn_vals(n_vals+1);
+    ColVec_t simplex_fn_vals_old(n_vals+1);
     Mat_t simplex_points(n_vals+1, n_vals);
     Mat_t simplex_points_old(n_vals+1, n_vals);
-    
-    simplex_fn_vals(0) = opt_objfn(init_out_vals, nullptr, opt_data);
-    simplex_points.row(0) = OPTIM_MATOPS_TRANSPOSE(init_out_vals);
+
+    if (settings.nm_settings.custom_initial_simplex) {
+        simplex_points = settings.nm_settings.initial_simplex_points;
+        simplex_fn_vals(0) = opt_objfn(BMO_MATOPS_TRANSPOSE(simplex_points.row(0)), nullptr, opt_data);
+    } else {
+        simplex_fn_vals(0) = opt_objfn(init_out_vals, nullptr, opt_data);
+        simplex_points.row(0) = BMO_MATOPS_TRANSPOSE(init_out_vals);
+    }
 
     if (vals_bound) {
-        simplex_points.row(0) = OPTIM_MATOPS_TRANSPOSE( transform( OPTIM_MATOPS_TRANSPOSE(simplex_points.row(0)), bounds_type, lower_bounds, upper_bounds) );
+        simplex_points.row(0) = transform<RowVec_t>(simplex_points.row(0), bounds_type, lower_bounds, upper_bounds);
     }
 
     for (size_t i = 1; i < n_vals + 1; ++i) {
-        if (init_out_vals(i-1) != 0.0) {
-            simplex_points.row(i) = OPTIM_MATOPS_TRANSPOSE( init_out_vals + 0.05*init_out_vals(i-1) * unit_vec(i-1,n_vals) );
-        } else {
-            simplex_points.row(i) = OPTIM_MATOPS_TRANSPOSE( init_out_vals + 0.00025 * unit_vec(i-1,n_vals) );
-            // simplex_points.row(i) = init_out_vals.t() + 0.05*arma::trans(unit_vec(i-1,n_vals));
+        if (!settings.nm_settings.custom_initial_simplex) {
+            if (init_out_vals(i-1) != 0.0) {
+                simplex_points.row(i) = BMO_MATOPS_TRANSPOSE( init_out_vals + 0.05*init_out_vals(i-1) * bmo::unit_vec(i-1,n_vals) );
+            } else {
+                simplex_points.row(i) = BMO_MATOPS_TRANSPOSE( init_out_vals + 0.00025 * bmo::unit_vec(i-1,n_vals) );
+                // simplex_points.row(i) = init_out_vals.t() + 0.05*arma::trans(unit_vec(i-1,n_vals));
+            }
         }
 
-        simplex_fn_vals(i) = opt_objfn(OPTIM_MATOPS_TRANSPOSE(simplex_points.row(i)),nullptr,opt_data);
+        simplex_fn_vals(i) = opt_objfn(BMO_MATOPS_TRANSPOSE(simplex_points.row(i)),nullptr,opt_data);
 
         if (vals_bound) {
-            simplex_points.row(i) = OPTIM_MATOPS_TRANSPOSE( transform( OPTIM_MATOPS_TRANSPOSE(simplex_points.row(i)), bounds_type, lower_bounds, upper_bounds) );
+            simplex_points.row(i) = transform<RowVec_t>(simplex_points.row(i), bounds_type, lower_bounds, upper_bounds);
         }
     }
 
-    double min_val = OPTIM_MATOPS_MIN_VAL(simplex_fn_vals);
+    fp_t min_val = BMO_MATOPS_MIN_VAL(simplex_fn_vals);
 
     //
     // begin loop
@@ -177,15 +205,15 @@ internal::nm_impl(
         if (print_level >= 3) {
             std::cout << "  - Initialization Phase:\n";
             std::cout << "    Objective function value at each vertex:\n";
-            OPTIM_MATOPS_COUT << OPTIM_MATOPS_TRANSPOSE(simplex_fn_vals) << "\n";
+            BMO_MATOPS_COUT << BMO_MATOPS_TRANSPOSE(simplex_fn_vals) << "\n";
             std::cout << "    Simplex matrix:\n"; 
-            OPTIM_MATOPS_COUT << simplex_points << "\n";
+            BMO_MATOPS_COUT << simplex_points << "\n";
         }
     }
 
     size_t iter = 0;
-    double rel_objfn_change = 2*std::abs(rel_objfn_change_tol);
-    double rel_sol_change = 2*std::abs(rel_sol_change_tol);
+    fp_t rel_objfn_change = 2*std::abs(rel_objfn_change_tol);
+    fp_t rel_sol_change = 2*std::abs(rel_sol_change_tol);
 
     simplex_fn_vals_old = simplex_fn_vals;
     simplex_points_old = simplex_points;
@@ -196,23 +224,23 @@ internal::nm_impl(
         
         // step 1
 
-        // VecInt_t sort_vec = arma::sort_index(simplex_fn_vals); // sort from low (best) to high (worst) values
-        VecInt_t sort_vec = get_sort_index(simplex_fn_vals); // sort from low (best) to high (worst) values
+        // ColVecInt_t sort_vec = arma::sort_index(simplex_fn_vals); // sort from low (best) to high (worst) values
+        ColVecUInt_t sort_vec = bmo::get_sort_index(simplex_fn_vals); // sort from low (best) to high (worst) values
 
-        simplex_fn_vals = OPTIM_MATOPS_EVAL(simplex_fn_vals(sort_vec));
-        simplex_points = OPTIM_MATOPS_EVAL(OPTIM_MATOPS_ROWS(simplex_points, sort_vec));
+        simplex_fn_vals = BMO_MATOPS_EVAL(simplex_fn_vals(sort_vec));
+        simplex_points = BMO_MATOPS_EVAL(BMO_MATOPS_ROWS(simplex_points, sort_vec));
 
         // step 2
 
-        Vec_t centroid = OPTIM_MATOPS_TRANSPOSE( OPTIM_MATOPS_COLWISE_SUM( OPTIM_MATOPS_MIDDLE_ROWS(simplex_points, 0, n_vals-1) ) ) / static_cast<double>(n_vals);
+        ColVec_t centroid = BMO_MATOPS_TRANSPOSE( BMO_MATOPS_COLWISE_SUM( BMO_MATOPS_MIDDLE_ROWS(simplex_points, 0, n_vals-1) ) ) / static_cast<fp_t>(n_vals);
 
-        Vec_t x_r = centroid + par_alpha*(centroid - OPTIM_MATOPS_TRANSPOSE(simplex_points.row(n_vals)));
+        ColVec_t x_r = centroid + par_alpha*(centroid - BMO_MATOPS_TRANSPOSE(simplex_points.row(n_vals)));
 
-        double f_r = box_objfn(x_r, nullptr, opt_data);
+        fp_t f_r = box_objfn(x_r, nullptr, opt_data);
 
         if (f_r >= simplex_fn_vals(0) && f_r < simplex_fn_vals(n_vals-1)) {
             // reflected point is neither best nor worst in the new simplex
-            simplex_points.row(n_vals) = OPTIM_MATOPS_TRANSPOSE(x_r);
+            simplex_points.row(n_vals) = BMO_MATOPS_TRANSPOSE(x_r);
             simplex_fn_vals(n_vals) = f_r;
             next_iter = true;
         }
@@ -221,15 +249,15 @@ internal::nm_impl(
 
         if (!next_iter && f_r < simplex_fn_vals(0)) {
             // reflected point is better than the current best; try to go farther along this direction
-            Vec_t x_e = centroid + par_gamma*(x_r - centroid);
+            ColVec_t x_e = centroid + par_gamma*(x_r - centroid);
 
-            double f_e = box_objfn(x_e, nullptr, opt_data);
+            fp_t f_e = box_objfn(x_e, nullptr, opt_data);
 
             if (f_e < f_r) {
-                simplex_points.row(n_vals) = OPTIM_MATOPS_TRANSPOSE(x_e);
+                simplex_points.row(n_vals) = BMO_MATOPS_TRANSPOSE(x_e);
                 simplex_fn_vals(n_vals) = f_e;
             } else {
-                simplex_points.row(n_vals) = OPTIM_MATOPS_TRANSPOSE(x_r);
+                simplex_points.row(n_vals) = BMO_MATOPS_TRANSPOSE(x_r);
                 simplex_fn_vals(n_vals) = f_r;
             }
 
@@ -245,13 +273,13 @@ internal::nm_impl(
 
             if (f_r < simplex_fn_vals(n_vals)) {
                 // outside contraction
-                Vec_t x_oc = centroid + par_beta*(x_r - centroid);
+                ColVec_t x_oc = centroid + par_beta*(x_r - centroid);
 
-                double f_oc = box_objfn(x_oc, nullptr, opt_data);
+                fp_t f_oc = box_objfn(x_oc, nullptr, opt_data);
 
                 if (f_oc <= f_r)
                 {
-                    simplex_points.row(n_vals) = OPTIM_MATOPS_TRANSPOSE(x_oc);
+                    simplex_points.row(n_vals) = BMO_MATOPS_TRANSPOSE(x_oc);
                     simplex_fn_vals(n_vals) = f_oc;
                     next_iter = true;
                 }
@@ -259,13 +287,13 @@ internal::nm_impl(
                 // inside contraction: f_r >= simplex_fn_vals(n_vals)
                 
                 // x_ic = centroid - par_beta*(x_r - centroid);
-                Vec_t x_ic = centroid + par_beta*( OPTIM_MATOPS_TRANSPOSE(simplex_points.row(n_vals)) - centroid );
+                ColVec_t x_ic = centroid + par_beta * ( BMO_MATOPS_TRANSPOSE(simplex_points.row(n_vals)) - centroid );
 
-                double f_ic = box_objfn(x_ic, nullptr, opt_data);
+                fp_t f_ic = box_objfn(x_ic, nullptr, opt_data);
 
                 if (f_ic < simplex_fn_vals(n_vals))
                 {
-                    simplex_points.row(n_vals) = OPTIM_MATOPS_TRANSPOSE(x_ic);
+                    simplex_points.row(n_vals) = BMO_MATOPS_TRANSPOSE(x_ic);
                     simplex_fn_vals(n_vals) = f_ic;
                     next_iter = true;
                 }
@@ -280,28 +308,28 @@ internal::nm_impl(
                 simplex_points.row(i) = simplex_points.row(0) + par_delta*(simplex_points.row(i) - simplex_points.row(0));
             }
 
-#ifdef OPTIM_USE_OMP
-            #pragma omp parallel for
+#ifdef OPTIM_USE_OPENMP
+            #pragma omp parallel for num_threads(omp_n_threads)
 #endif
             for (size_t i = 1; i < n_vals + 1; i++) {
-                simplex_fn_vals(i) = box_objfn( OPTIM_MATOPS_TRANSPOSE(simplex_points.row(i)), nullptr, opt_data);
+                simplex_fn_vals(i) = box_objfn( BMO_MATOPS_TRANSPOSE(simplex_points.row(i)), nullptr, opt_data);
             }
         }
 
-        min_val = OPTIM_MATOPS_MIN_VAL(simplex_fn_vals);
+        min_val = BMO_MATOPS_MIN_VAL(simplex_fn_vals);
 
         //
 
-        // double change_val_min = std::abs(min_val - OPTIM_MATOPS_MIN_VAL(simplex_fn_vals));
-        // double change_val_max = std::abs(min_val - OPTIM_MATOPS_MAX_VAL(simplex_fn_vals));
+        // fp_t change_val_min = std::abs(min_val - BMO_MATOPS_MIN_VAL(simplex_fn_vals));
+        // fp_t change_val_max = std::abs(min_val - BMO_MATOPS_MAX_VAL(simplex_fn_vals));
     
-        // rel_objfn_change = std::max( change_val_min, change_val_max ) / (1.0e-08 + OPTIM_MATOPS_ABS_MAX_VAL(simplex_fn_vals));
+        // rel_objfn_change = std::max( change_val_min, change_val_max ) / (OPTIM_FPN_SMALL_NUMBER + BMO_MATOPS_ABS_MAX_VAL(simplex_fn_vals));
 
-        rel_objfn_change = (OPTIM_MATOPS_ABS_MAX_VAL(simplex_fn_vals - simplex_fn_vals_old)) / (1.0e-08 + OPTIM_MATOPS_ABS_MAX_VAL(simplex_fn_vals_old));
+        rel_objfn_change = (BMO_MATOPS_ABS_MAX_VAL(simplex_fn_vals - simplex_fn_vals_old)) / (OPTIM_FPN_SMALL_NUMBER + BMO_MATOPS_ABS_MAX_VAL(simplex_fn_vals_old));
         simplex_fn_vals_old = simplex_fn_vals;
 
         if (rel_sol_change_tol >= 0.0) { 
-            rel_sol_change = (OPTIM_MATOPS_ABS_MAX_VAL(simplex_points - simplex_points_old)) / (1.0e-08 + OPTIM_MATOPS_ABS_MAX_VAL(simplex_points_old));
+            rel_sol_change = (BMO_MATOPS_ABS_MAX_VAL(simplex_points - simplex_points_old)) / (OPTIM_FPN_SMALL_NUMBER + BMO_MATOPS_ABS_MAX_VAL(simplex_points_old));
             simplex_points_old = simplex_points;
         }
 
@@ -316,7 +344,7 @@ internal::nm_impl(
 
     //
 
-    Vec_t prop_out = OPTIM_MATOPS_TRANSPOSE(simplex_points.row(index_min(simplex_fn_vals)));
+    ColVec_t prop_out = BMO_MATOPS_TRANSPOSE(simplex_points.row(bmo::index_min(simplex_fn_vals)));
     
     if (vals_bound) {
         prop_out = inv_transform(prop_out, bounds_type, lower_bounds, upper_bounds);
@@ -333,19 +361,23 @@ internal::nm_impl(
 
 inline
 bool
-nm(Vec_t& init_out_vals, 
-          std::function<double (const Vec_t& vals_inp, Vec_t* grad_out, void* opt_data)> opt_objfn, 
-          void* opt_data)
+nm(
+    ColVec_t& init_out_vals, 
+    std::function<fp_t (const ColVec_t& vals_inp, ColVec_t* grad_out, void* opt_data)> opt_objfn, 
+    void* opt_data
+)
 {
     return internal::nm_impl(init_out_vals,opt_objfn,opt_data,nullptr);
 }
 
 inline
 bool
-nm(Vec_t& init_out_vals, 
-          std::function<double (const Vec_t& vals_inp, Vec_t* grad_out, void* opt_data)> opt_objfn, 
-          void* opt_data, 
-          algo_settings_t& settings)
+nm(
+    ColVec_t& init_out_vals, 
+    std::function<fp_t (const ColVec_t& vals_inp, ColVec_t* grad_out, void* opt_data)> opt_objfn, 
+    void* opt_data, 
+    algo_settings_t& settings
+)
 {
     return internal::nm_impl(init_out_vals,opt_objfn,opt_data,&settings);
 }

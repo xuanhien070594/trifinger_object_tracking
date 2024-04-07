@@ -1,6 +1,6 @@
 /*################################################################################
   ##
-  ##   Copyright (C) 2016-2020 Keith O'Hara
+  ##   Copyright (C) 2016-2023 Keith O'Hara
   ##
   ##   This file is part of the OptimLib C++ library.
   ##
@@ -30,79 +30,86 @@
 namespace internal
 {
 
-double
-line_search_mt(double step, 
-               Vec_t& x, 
-               Vec_t& grad, 
-               const Vec_t& direc, 
-               const double* wolfe_cons_1_inp, 
-               const double* wolfe_cons_2_inp, 
-               std::function<double (const Vec_t& vals_inp, Vec_t* grad_out, void* opt_data)> opt_objfn, 
-               void* opt_data);
+fp_t
+line_search_mt(
+    fp_t step, 
+    ColVec_t& x, 
+    ColVec_t& grad, 
+    const ColVec_t& direc, 
+    const fp_t* wolfe_cons_1_inp, 
+    const fp_t* wolfe_cons_2_inp, 
+    std::function<fp_t (const ColVec_t& vals_inp, ColVec_t* grad_out, void* opt_data)> opt_objfn, 
+    void* opt_data
+);
 
 // update the 'interval of uncertainty'
 
 uint_t 
-mt_step(double& st_best, 
-        double& f_best, 
-        double& d_best, 
-        double& st_other, 
-        double& f_other, 
-        double& d_other, 
-        double& step, 
-        double& f_step, 
-        double& d_step, 
-        bool& bracket, 
-        double step_min, 
-        double step_max);
+mt_step(
+    fp_t& st_best, 
+    fp_t& f_best, 
+    fp_t& d_best, 
+    fp_t& st_other, 
+    fp_t& f_other, 
+    fp_t& d_other, 
+    fp_t& step, 
+    fp_t& f_step, 
+    fp_t& d_step, 
+    bool& bracket, 
+    fp_t step_min, 
+    fp_t step_max
+);
 
-double 
-mt_sup_norm(const double a, 
-            const double b, 
-            const double c);
+fp_t 
+mt_sup_norm(
+    const fp_t a, 
+    const fp_t b, 
+    const fp_t c
+);
 
 }
 
 //
 
 inline
-double
+fp_t
 internal::line_search_mt(
-    double step, 
-    Vec_t& x, 
-    Vec_t& grad, 
-    const Vec_t& direc, 
-    const double* wolfe_cons_1_inp, 
-    const double* wolfe_cons_2_inp, 
-    std::function<double (const Vec_t& vals_inp, Vec_t* grad_out, void* opt_data)> opt_objfn, 
-    void* opt_data)
+    fp_t step, 
+    ColVec_t& x, 
+    ColVec_t& grad, 
+    const ColVec_t& direc, 
+    const fp_t* wolfe_cons_1_inp, 
+    const fp_t* wolfe_cons_2_inp, 
+    std::function<fp_t (const ColVec_t& vals_inp, ColVec_t* grad_out, void* opt_data)> opt_objfn, 
+    void* opt_data
+)
 {
     const size_t iter_max = 100;
 
-    const double step_min = 0.0;
-    const double step_max = 10.0;
-    const double xtol = 1E-04;
+    const fp_t step_min = 0.0;
+    const fp_t step_max = 10.0;
+    const fp_t xtol = 1E-04;
 
     // Wolfe parameters
-    const double wolfe_cons_1 = (wolfe_cons_1_inp) ? *wolfe_cons_1_inp : 1E-03; // tolerance on the Armijo sufficient decrease condition; sometimes labelled 'mu'.
-    const double wolfe_cons_2 = (wolfe_cons_2_inp) ? *wolfe_cons_2_inp : 0.90;  // tolerance on the curvature condition; sometimes labelled 'eta'.
+    const fp_t wolfe_cons_1 = (wolfe_cons_1_inp) ? *wolfe_cons_1_inp : 1E-03; // tolerance on the Armijo sufficient decrease condition; sometimes labelled 'mu'.
+    const fp_t wolfe_cons_2 = (wolfe_cons_2_inp) ? *wolfe_cons_2_inp : 0.90;  // tolerance on the curvature condition; sometimes labelled 'eta'.
     
     //
 
     uint_t info = 0, infoc = 1;
-    const double extrap_delta = 4; // 'delta' on page 20
+    const fp_t extrap_delta = 4; // 'delta' on page 20
 
-    Vec_t x_0 = x;
+    ColVec_t x_0 = x;
 
-    double f_step = opt_objfn(x,&grad,opt_data); // q(0)
+    fp_t f_step = opt_objfn(x,&grad,opt_data); // q(0)
 
-    double dgrad_init = OPTIM_MATOPS_DOT_PROD(grad,direc);
+    fp_t dgrad_init = BMO_MATOPS_DOT_PROD(grad,direc);
     
     if (dgrad_init >= 0.0) {
         return step;
     }
 
-    double dgrad = dgrad_init;
+    fp_t dgrad = dgrad_init;
 
     //
 
@@ -110,16 +117,16 @@ internal::line_search_mt(
 
     bool bracket = false, stage_1 = true;
 
-    double f_init = f_step, dgrad_test = wolfe_cons_1*dgrad_init;
-    double width = step_max - step_min, width_old = 2*width;
+    fp_t f_init = f_step, dgrad_test = wolfe_cons_1*dgrad_init;
+    fp_t width = step_max - step_min, width_old = 2*width;
     
-    double st_best = 0.0, f_best = f_init, dgrad_best = dgrad_init;
-    double st_other = 0.0, f_other = f_init, dgrad_other = dgrad_init;
+    fp_t st_best = 0.0, f_best = f_init, dgrad_best = dgrad_init;
+    fp_t st_other = 0.0, f_other = f_init, dgrad_other = dgrad_init;
 
     while (1) {
         ++iter;
 
-        double st_min, st_max;
+        fp_t st_min, st_max;
 
         if (bracket) {
             st_min = std::min(st_best,st_other);
@@ -141,8 +148,8 @@ internal::line_search_mt(
         x = x_0 + step * direc;
         f_step = opt_objfn(x,&grad,opt_data);
 
-        dgrad = OPTIM_MATOPS_DOT_PROD(grad,direc);
-        double armijo_check_val = f_init + step*dgrad_test;
+        dgrad = BMO_MATOPS_DOT_PROD(grad,direc);
+        fp_t armijo_check_val = f_init + step*dgrad_test;
 
         // check stop conditions
 
@@ -178,13 +185,13 @@ internal::line_search_mt(
         }
 
         if (stage_1 && f_step <= f_best && f_step > armijo_check_val) {
-            double f_mod  = f_step - step*dgrad_test;
-            double f_best_mod = f_best - st_best*dgrad_test;
-            double f_other_mod = f_other - st_other*dgrad_test;
+            fp_t f_mod  = f_step - step*dgrad_test;
+            fp_t f_best_mod = f_best - st_best*dgrad_test;
+            fp_t f_other_mod = f_other - st_other*dgrad_test;
 
-            double dgrad_mod  = dgrad - dgrad_test;
-            double dgrad_best_mod = dgrad_best - dgrad_test;
-            double dgrad_other_mod = dgrad_other - dgrad_test;
+            fp_t dgrad_mod  = dgrad - dgrad_test;
+            fp_t dgrad_best_mod = dgrad_best - dgrad_test;
+            fp_t dgrad_other_mod = dgrad_other - dgrad_test;
 
             infoc = mt_step(st_best,f_best_mod,dgrad_best_mod,st_other,f_other_mod,dgrad_other_mod,step,f_mod,dgrad_mod,bracket,st_min,st_max);
             
@@ -222,24 +229,25 @@ internal::line_search_mt(
 inline
 uint_t
 internal::mt_step(
-    double& st_best, 
-    double& f_best, 
-    double& d_best, 
-    double& st_other, 
-    double& f_other, 
-    double& d_other, 
-    double& step, 
-    double& f_step, 
-    double& d_step, 
+    fp_t& st_best, 
+    fp_t& f_best, 
+    fp_t& d_best, 
+    fp_t& st_other, 
+    fp_t& f_other, 
+    fp_t& d_other, 
+    fp_t& step, 
+    fp_t& f_step, 
+    fp_t& d_step, 
     bool& bracket, 
-    double step_min, 
-    double step_max)
+    fp_t step_min, 
+    fp_t step_max
+)
 {
     bool bound = false;
     uint_t info = 0;
-    double sgnd = d_step*(d_best / std::abs(d_best));
+    fp_t sgnd = d_step*(d_best / std::abs(d_best));
 
-    double theta,s,gamma, p,q,r, step_c,step_q,step_f;
+    fp_t theta,s,gamma, p,q,r, step_c,step_q,step_f;
 
     if (f_step > f_best) {
         info = 1;
@@ -267,14 +275,14 @@ internal::mt_step(
         }
 
         bracket = true;
-    } else if (sgnd < 0.0) {
+    } else if (sgnd < fp_t(0.0)) {
         info = 2;
         bound = false;
      
         theta = 3*(f_best - f_step)/(step - st_best) + d_best + d_step;
         s = mt_sup_norm(theta,d_best,d_step); // sup norm
 
-        gamma = s * std::sqrt(std::pow(theta/s,2) - (d_best/s)*(d_step/s));
+        gamma = s * std::sqrt(std::pow(theta/s,fp_t(2)) - (d_best/s)*(d_step/s));
         if (step > st_best) {
             gamma = -gamma;
         }
@@ -300,7 +308,7 @@ internal::mt_step(
         theta = 3*(f_best - f_step)/(step - st_best) + d_best + d_step;
         s = mt_sup_norm(theta,d_best,d_step); // sup norm
 
-        gamma = s*std::sqrt(std::max(0.0,std::pow(theta/s,2) - (d_best/s)*(d_step/s)));
+        gamma = s * std::sqrt(std::max(fp_t(0.0), std::pow(theta/s,fp_t(2)) - (d_best/s)*(d_step/s)));
         if (step > st_best) {
             gamma = -gamma;
         }
@@ -309,7 +317,7 @@ internal::mt_step(
         q = (gamma + (d_best - d_step)) + gamma;
         r = p/q;
 
-        if (r < 0.0 && gamma != 0.0) {
+        if (r < fp_t(0.0) && gamma != fp_t(0.0)) {
             step_c = step + r*(st_best - step);
         } else if (step > st_best) {
             step_c = step_max;
@@ -340,7 +348,7 @@ internal::mt_step(
             theta = 3*(f_step - f_other)/(st_other - step) + d_other + d_step;
             s = mt_sup_norm(theta,d_other,d_step);
 
-            gamma = s*std::sqrt(std::pow(theta/s,2) - (d_other/s)*(d_step/s));
+            gamma = s*std::sqrt(std::pow(theta/s,fp_t(2)) - (d_other/s)*(d_step/s));
             if (step > st_other) {
                 gamma = -gamma;
             }
@@ -367,7 +375,7 @@ internal::mt_step(
         f_other = f_step;
         d_other = d_step;
     } else {
-        if (sgnd < 0.0) {
+        if (sgnd < fp_t(0.0)) {
             st_other = st_best;
             f_other = f_best;
             d_other = d_best;
@@ -387,9 +395,9 @@ internal::mt_step(
     
     if (bracket && bound) {
         if (st_other > st_best) {
-            step = std::min(st_best + 0.66*(st_other - st_best), step);
+            step = std::min(st_best + fp_t(0.66) * (st_other - st_best), step);
         } else {
-            step = std::max(st_best + 0.66*(st_other - st_best), step);
+            step = std::max(st_best + fp_t(0.66) * (st_other - st_best), step);
         }
     }
 

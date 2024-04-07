@@ -1,6 +1,6 @@
 /*################################################################################
   ##
-  ##   Copyright (C) 2016-2020 Keith O'Hara
+  ##   Copyright (C) 2016-2023 Keith O'Hara
   ##
   ##   This file is part of the OptimLib C++ library.
   ##
@@ -18,22 +18,10 @@
   ##
   ################################################################################*/
 
-#ifndef OPTIM_MATOPS_SUM
+#ifndef OPTIMLIB_ZEROS_INCLUDES
+#define OPTIMLIB_ZEROS_INCLUDES
 
-//
-
-#ifdef OPTIM_ENABLE_ARMA_WRAPPERS
-    #define OPTIM_MATOPS_SUM(x) arma::sum(x)
-    #define OPTIM_MATOPS_ROWWISE_SUM(x) arma::sum(x,1) // for each row, sum the elements
-    #define OPTIM_MATOPS_COLWISE_SUM(x) arma::sum(x,0) // for each column, sum the elements
-#endif
-
-#ifdef OPTIM_ENABLE_EIGEN_WRAPPERS
-    #define OPTIM_MATOPS_SUM(x) (x).sum()
-    #define OPTIM_MATOPS_ROWWISE_SUM(x) (x).rowwise().sum() // for each row, sum the elements
-    #define OPTIM_MATOPS_COLWISE_SUM(x) (x).colwise().sum() // for each column, sum the elements
-#endif
-
-//
+#include "broyden.hpp"
+#include "broyden_df.hpp"
 
 #endif

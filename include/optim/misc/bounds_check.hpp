@@ -19,40 +19,31 @@
   ################################################################################*/
 
 /*
- * Determine the upper-lower bounds combo type
+ * check and impose sampling bounds for DE and PSO
  */
 
-// note: std::isfinite is not true for NaN, - Inf, or + Inf
-
 inline
-ColVecInt_t
-determine_bounds_type(
-    const bool vals_bound, 
-    const size_t n_vals, 
-    const ColVec_t& lower_bounds, 
-    const ColVec_t& upper_bounds
+void
+sampling_bounds_check(
+    const bool vals_bound,
+    const size_t n_vals,
+    const ColVecInt_t bounds_type,
+    const ColVec_t& hard_lower_bounds, 
+    const ColVec_t& hard_upper_bounds,
+    ColVec_t& sampling_lower_bounds,
+    ColVec_t& sampling_upper_bounds
 )
 {
-    ColVecInt_t ret_vec(n_vals);
-
-    BMO_MATOPS_SET_VALUES_SCALAR(ret_vec, 1); // base case: 1 - no bounds imposed
-
     if (vals_bound) {
         for (size_t i = 0; i < n_vals; ++i) {
-            if ( std::isfinite(lower_bounds(i)) && std::isfinite(upper_bounds(i)) ) {
-                // lower and upper bound imposed
-                ret_vec(i) = 4;
-            } else if ( std::isfinite(lower_bounds(i)) && !std::isfinite(upper_bounds(i)) ) {
-                // lower bound only
-                ret_vec(i) = 2;
-            } else if ( !std::isfinite(lower_bounds(i)) && std::isfinite(upper_bounds(i)) ) {
-                // upper bound only
-                ret_vec(i) = 3;
+            if (bounds_type(i) == 4 || bounds_type(i) == 2) {
+                // lower and upper bound imposed || lower bound only
+                sampling_lower_bounds(i) = std::max( hard_lower_bounds(i), sampling_lower_bounds(i) );
+            }
+            if (bounds_type(i) == 4 || bounds_type(i) == 3) {
+                // lower and upper bound imposed || upper bound only
+                sampling_upper_bounds(i) = std::min( hard_upper_bounds(i), sampling_upper_bounds(i) );
             }
         }
     }
-
-    //
-    
-    return ret_vec;
 }

@@ -1,6 +1,7 @@
 .DS_Store
 *.pyc
 .idea
+*.swp
 build/
 results/
 new_results/
