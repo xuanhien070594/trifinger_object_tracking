@@ -1,5 +1,6 @@
 #include <float.h>
 #include <math.h>
+#include <chrono>
 
 #include <iostream>
 #include <random>
@@ -487,7 +488,7 @@ void PoseDetector::optimize_using_optim(
     // unsigned int num_pixels_per_mask = 15;
     // MasksPixels sampled_masks_pixels =
     //     sample_masks_pixels(masks_pixels, num_pixels_per_mask);
-    unsigned int num_samples = 2500;
+    unsigned int num_samples = 150;
     MasksPixels sampled_masks_pixels =
         sample_masks_pixels_proportionally(masks_pixels, num_samples);
 
@@ -497,19 +498,20 @@ void PoseDetector::optimize_using_optim(
     float height_cost_scaling = 10.0;
 
     optim::algo_settings_t settings;
-    settings.de_settings.n_gen = 50;
-    settings.de_settings.n_pop = 40;
+    settings.de_settings.n_gen = 20;
+    settings.de_settings.n_pop = 30;
     settings.de_settings.n_pop_best = 1;
     settings.de_settings.mutation_method = 2;
+    settings.de_settings.omp_n_threads = 2;
     settings.print_level = 0;
 
     settings.vals_bound = true;
-    settings.lower_bounds = {-0.35, -0.35, -0.1, -1e1, -1e1, -1e1};
-    settings.upper_bounds = {0.35, 0.35, 0.35, 1e1, 1e1, 1e1};
+    settings.lower_bounds = {-0.20, -0.20, -0.1, -1e1, -1e1, -1e1};
+    settings.upper_bounds = {0.20, 0.20, 0.2, 1e1, 1e1, 1e1};
     settings.de_settings.initial_lb = {-0.2, -0.2, 0, -1, -1, -1};
     settings.de_settings.initial_ub = {0.2, 0.2, 0.2, 1, 1, 1};
 
-    arma::vec pose = {0., 0., 0.1250, 0., 0., 0.};
+    arma::vec pose = {0., 0., 0.0325, 0., 0., 0.};
 
     // std::cout << "initial_pose: " << pose.t() << std::endl;
     // std::cout << "settings.lower_bounds " << settings.lower_bounds.t()
@@ -520,7 +522,7 @@ void PoseDetector::optimize_using_optim(
     //           << settings.de_settings.initial_lb.t() << std::endl;
     // std::cout << "settings.de_settings.initial_ub "
     //           << settings.de_settings.initial_ub.t() << std::endl;
-
+    auto startTime = std::chrono::high_resolution_clock::now();
     optim::de(
         pose,
         [this,
@@ -548,6 +550,10 @@ void PoseDetector::optimize_using_optim(
         },
         nullptr,
         settings);
+    auto endTime = std::chrono::high_resolution_clock::now();
+
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();
+    std::cout << duration << std::endl;
 
     pose2position_and_orientation(pose, &position_.mean, &orientation_.mean);
 
