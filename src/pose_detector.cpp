@@ -510,19 +510,9 @@ void PoseDetector::optimize_using_optim(
     settings.upper_bounds = {0.20, 0.20, 0.2, 1e1, 1e1, 1e1};
     settings.de_settings.initial_lb = {-0.2, -0.2, 0, -1, -1, -1};
     settings.de_settings.initial_ub = {0.2, 0.2, 0.2, 1, 1, 1};
-
     arma::vec pose = {0., 0., 0.0325, 0., 0., 0.};
 
-    // std::cout << "initial_pose: " << pose.t() << std::endl;
-    // std::cout << "settings.lower_bounds " << settings.lower_bounds.t()
-    //           << std::endl;
-    // std::cout << "settings.upper_bounds " << settings.upper_bounds.t()
-    //           << std::endl;
-    // std::cout << "settings.de_settings.initial_lb "
-    //           << settings.de_settings.initial_lb.t() << std::endl;
-    // std::cout << "settings.de_settings.initial_ub "
-    //           << settings.de_settings.initial_ub.t() << std::endl;
-    auto startTime = std::chrono::high_resolution_clock::now();
+//    auto startTime = std::chrono::high_resolution_clock::now();
     optim::de(
         pose,
         [this,
@@ -550,15 +540,14 @@ void PoseDetector::optimize_using_optim(
         },
         nullptr,
         settings);
-    auto endTime = std::chrono::high_resolution_clock::now();
-
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();
-    std::cout << "Time taken to estimate pose " << duration << std::endl;
+//    auto endTime = std::chrono::high_resolution_clock::now();
+//    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();
+//    std::cout << "Time taken to estimate pose " << duration << std::endl;
 
     pose2position_and_orientation(pose, &position_.mean, &orientation_.mean);
 
-    confidence_ = compute_confidence(
-        position_.mean, orientation_.mean, dominant_colors, masks_pixels);
+//    confidence_ = compute_confidence(
+//        position_.mean, orientation_.mean, dominant_colors, masks_pixels);
 }
 
 Pose PoseDetector::find_pose(
