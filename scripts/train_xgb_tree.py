@@ -182,10 +182,10 @@ def prepare_data(
 
 def fit_model(X_train, y_train, seed=42):
     model = XGBClassifier(
-        learning_rate=1.0,
+        learning_rate=0.5,
         n_estimators=1,  # only one tree
         n_jobs=8,
-        max_depth=6,  # maximum tree depth
+        max_depth=12,  # maximum tree depth
         random_state=seed,
     )
     model.fit(X_train, y_train)
