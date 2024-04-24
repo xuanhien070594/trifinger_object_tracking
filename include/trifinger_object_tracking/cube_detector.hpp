@@ -75,7 +75,7 @@ private:
  *
  * @param cube_model The model that is used for detecting the cube.
  */
-CubeDetector create_trifingerpro_cube_detector(
+CubeDetector create_trifinger_cube_detector(
     BaseCuboidModel::ConstPtr cube_model);
 
 }  // namespace trifinger_object_tracking

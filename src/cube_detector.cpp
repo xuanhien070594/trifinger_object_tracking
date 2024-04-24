@@ -222,15 +222,15 @@ ObjectPose CubeDetector::convert_pose(const Pose &pose)
     return object_pose;
 }
 
-CubeDetector create_trifingerpro_cube_detector(
+CubeDetector create_trifinger_cube_detector(
     BaseCuboidModel::ConstPtr cube_model)
 {
     return CubeDetector(
         cube_model,
         {
-            "/etc/trifingerpro/camera60_cropped_and_downsampled.yml",
-            "/etc/trifingerpro/camera180_cropped_and_downsampled.yml",
-            "/etc/trifingerpro/camera300_cropped_and_downsampled.yml",
+            "/home/src/trifinger_object_tracking/camera_params/camera_calib_60.yml",
+            "/home/src/trifinger_object_tracking/camera_params/camera_calib_180.yml",
+            "/home/src/trifinger_object_tracking/camera_params/camera_calib_300.yml",
         });
 }
 

@@ -27,8 +27,8 @@ TriCameraObjectTrackerDriver::TriCameraObjectTrackerDriver(
                trifinger_cameras::PylonDriver(device_id_2, downsample_images),
                trifinger_cameras::PylonDriver(device_id_3, downsample_images)},
       cube_detector_(
-          trifinger_object_tracking::create_trifingerpro_cube_detector(
-              cube_model)),
+              trifinger_object_tracking::create_trifinger_cube_detector(
+                      cube_model)),
       last_update_time_(std::chrono::system_clock::now()),
       downsample_images_(downsample_images)
 {

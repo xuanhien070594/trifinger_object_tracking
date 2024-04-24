@@ -48,7 +48,7 @@ def run_cube_pose_tracker():
         camera_driver = tricamera.TriCameraObjectTrackerDriver(
             *camera_names,
             cube_model=model,
-            downsample_images=(not args.no_downsample)
+            downsample_images=False
         )
         camera_backend = tricamera.Backend(camera_driver, camera_data)
     camera_frontend = tricamera.Frontend(camera_data)

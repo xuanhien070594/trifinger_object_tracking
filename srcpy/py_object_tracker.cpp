@@ -137,8 +137,8 @@ PYBIND11_MODULE(py_object_tracker, m)
           "Get object model based on its name.",
           pybind11::call_guard<pybind11::gil_scoped_release>());
 
-    m.def("create_trifingerpro_cube_detector",
-          &create_trifingerpro_cube_detector,
+    m.def("create_trifinger_cube_detector",
+          &create_trifinger_cube_detector,
           "Create a CubeDetector for TriFingerPro robot, automatically loading "
           "the local camera calibration.",
           pybind11::call_guard<pybind11::gil_scoped_release>());
