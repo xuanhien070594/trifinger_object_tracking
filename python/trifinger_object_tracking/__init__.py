@@ -1,5 +1,6 @@
 import cv_bridge
 import rclpy
+from rclpy.node import Node
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Pose
 from trifinger_cameras import utils
@@ -8,7 +9,7 @@ from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 CAMERA_NAMES = ["camera60", "camera180", "camera300"]
 
 
-class CubePosePublisher(rclpy.Node):
+class CubePosePublisher(Node):
     def __init__(self, camera_frontend, cube_visualizer):
         super().__init__("cube_pose_publisher")
         self.cv_bridge_ = cv_bridge.CvBridge()

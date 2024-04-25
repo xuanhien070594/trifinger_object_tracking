@@ -61,6 +61,7 @@ def run_cube_pose_tracker():
     ]
     cube_visualizer = tricamera.CubeVisualizer(model, camera_params)
 
+    rclpy.init()
     cube_pose_pub_node = CubePosePublisher(camera_frontend, cube_visualizer)
     executor = MultiThreadedExecutor()
     executor.add_node(cube_pose_pub_node)
@@ -68,7 +69,7 @@ def run_cube_pose_tracker():
     executor.spin()
     executor.shutdown()
     cube_pose_pub_node.destroy_node()
-    rclpy.shut_down()
+    rclpy.shutdown()
 
     if not args.multi_process:
         camera_backend.shutdown()
