@@ -6,11 +6,15 @@
 #pragma once
 
 #include <chrono>
+#include <memory>
 
 #include <robot_interfaces/sensors/sensor_driver.hpp>
 #include <trifinger_cameras/pylon_driver.hpp>
 #include <trifinger_object_tracking/cube_detector.hpp>
 #include <trifinger_object_tracking/tricamera_object_observation.hpp>
+#include <log4cxx/logger.h>
+#include <log4cxx/basicconfigurator.h>
+#include <log4cxx/xml/domconfigurator.h>
 
 namespace trifinger_object_tracking
 {
@@ -22,6 +26,7 @@ class TriCameraObjectTrackerDriver
     : public robot_interfaces::SensorDriver<TriCameraObjectObservation>
 {
 public:
+    log4cxx::LoggerPtr logger = log4cxx::Logger::getLogger("Tricamera_driver");
     //! @brief Rate at which images are acquired.
     static constexpr std::chrono::milliseconds rate =
         std::chrono::milliseconds(100);

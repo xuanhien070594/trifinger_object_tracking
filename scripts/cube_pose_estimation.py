@@ -11,6 +11,7 @@ from ament_index_python.packages import get_package_share_directory
 
 import trifinger_object_tracking.py_object_tracker
 import trifinger_object_tracking.py_tricamera_types as tricamera
+from trifinger_cameras.utils import convert_image
 
 
 def run_cube_pose_tracker():
@@ -52,11 +53,24 @@ def run_cube_pose_tracker():
         )
         camera_backend = tricamera.Backend(camera_driver, camera_data)
     camera_frontend = tricamera.Frontend(camera_data)
+    camera_params = ["/home/src/trifinger_object_tracking/camera_params/camera_calib_60.yml", \
+                     "/home/src/trifinger_object_tracking/camera_params/camera_calib_180.yml", \
+                     "/home/src/trifinger_object_tracking/camera_params/camera_calib_300.yml"]
+    cube_visualizer = tricamera.CubeVisualizer(model, camera_params)
 
     while True:
-        images = camera_frontend.get_latest_observation()
-        cube_position = images.object_pose.position
-        print("Object position:", np.round(cube_position[:3], 3))
+        obs = camera_frontend.get_latest_observation()
+        object_pose = obs.object_pose
+        #print("Object position:", np.round(cube_position[:3], 3))
+        #print("Object orientation:", np.round(cube_orientation[:4], 3))
+        images = [convert_image(camera.image) for camera in obs.cameras]
+        imposed_cube_images = cube_visualizer.draw_cube(images, object_pose, fill=False)
+
+        for i, name in enumerate(camera_names):
+            cv2.imshow(name, imposed_cube_images[i])
+
+        if cv2.waitKey(90) in [ord("q"), 27]:
+            break
 
     if not args.multi_process:
         camera_backend.shutdown()

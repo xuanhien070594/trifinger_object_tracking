@@ -35,6 +35,7 @@ find_package(LAPACK REQUIRED)
 find_package(BLAS REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(Armadillo REQUIRED)
+find_package(log4cxx REQUIRED)
 
 
 if (${HAS_PYLON_DRIVERS})
@@ -195,6 +196,7 @@ add_pybind11_module(py_tricamera_types srcpy/py_tricamera_types.cpp
         ${tricamera_object_tracking_driver}
         pybullet_tricamera_object_tracker_driver
         cube_visualizer
+	log4cxx
 )
 add_pybind11_module(py_lightblue_segmenter srcpy/py_lightblue_segmenter.cpp
     LINK_LIBRARIES
