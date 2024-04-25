@@ -6,12 +6,15 @@ import os
 import numpy as np
 import cv2
 import yaml
+import rclpy
 
 from ament_index_python.packages import get_package_share_directory
+from rclpy.executors import MultiThreadedExecutor
 
 import trifinger_object_tracking.py_object_tracker
 import trifinger_object_tracking.py_tricamera_types as tricamera
 from trifinger_cameras.utils import convert_image
+from trifinger_object_tracking import CubePosePublisher
 
 
 def run_cube_pose_tracker():
@@ -47,30 +50,25 @@ def run_cube_pose_tracker():
             args.cube_model
         )
         camera_driver = tricamera.TriCameraObjectTrackerDriver(
-            *camera_names,
-            cube_model=model,
-            downsample_images=False
+            *camera_names, cube_model=model, downsample_images=False
         )
         camera_backend = tricamera.Backend(camera_driver, camera_data)
     camera_frontend = tricamera.Frontend(camera_data)
-    camera_params = ["/home/src/trifinger_object_tracking/camera_params/camera_calib_60.yml", \
-                     "/home/src/trifinger_object_tracking/camera_params/camera_calib_180.yml", \
-                     "/home/src/trifinger_object_tracking/camera_params/camera_calib_300.yml"]
+    camera_params = [
+        "/home/src/trifinger_object_tracking/camera_params/camera_calib_60.yml",
+        "/home/src/trifinger_object_tracking/camera_params/camera_calib_180.yml",
+        "/home/src/trifinger_object_tracking/camera_params/camera_calib_300.yml",
+    ]
     cube_visualizer = tricamera.CubeVisualizer(model, camera_params)
 
-    while True:
-        obs = camera_frontend.get_latest_observation()
-        object_pose = obs.object_pose
-        #print("Object position:", np.round(cube_position[:3], 3))
-        #print("Object orientation:", np.round(cube_orientation[:4], 3))
-        images = [convert_image(camera.image) for camera in obs.cameras]
-        imposed_cube_images = cube_visualizer.draw_cube(images, object_pose, fill=False)
+    cube_pose_pub_node = CubePosePublisher(camera_frontend, cube_visualizer)
+    executor = MultiThreadedExecutor()
+    executor.add_node(cube_pose_pub_node)
 
-        for i, name in enumerate(camera_names):
-            cv2.imshow(name, imposed_cube_images[i])
-
-        if cv2.waitKey(90) in [ord("q"), 27]:
-            break
+    executor.spin()
+    executor.shutdown()
+    cube_pose_pub_node.destroy_node()
+    rclpy.shut_down()
 
     if not args.multi_process:
         camera_backend.shutdown()
