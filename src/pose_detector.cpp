@@ -488,7 +488,7 @@ void PoseDetector::optimize_using_optim(
     // unsigned int num_pixels_per_mask = 15;
     // MasksPixels sampled_masks_pixels =
     //     sample_masks_pixels(masks_pixels, num_pixels_per_mask);
-    unsigned int num_samples = 250;
+    unsigned int num_samples = 500;
     MasksPixels sampled_masks_pixels =
         sample_masks_pixels_proportionally(masks_pixels, num_samples);
 
