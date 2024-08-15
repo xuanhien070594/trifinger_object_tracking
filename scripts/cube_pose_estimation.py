@@ -72,7 +72,7 @@ def run_cube_pose_tracker():
 
     print("Camera system is ready!")
 
-    def _signal_handler():
+    def _signal_handler(signal, frame):
         if not args.multi_process:
             camera_backend.shutdown()
         sys.exit(0)
@@ -93,9 +93,6 @@ def run_cube_pose_tracker():
         if args.live_viewer:
             cv2.imshow(" | ".join(camera_names), stacked_image)
 
-        # stop if either "q" or ESC is pressed
-        if cv2.waitKey(3) in [ord("q"), 27]:  # 27 = ESC
-            break
         elapsed_time = time.perf_counter() - start_time
         remaining_time = (1.0 / args.publish_rate) - elapsed_time
 
