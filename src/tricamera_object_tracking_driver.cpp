@@ -32,7 +32,6 @@ TriCameraObjectTrackerDriver::TriCameraObjectTrackerDriver(
       last_update_time_(std::chrono::system_clock::now()),
       downsample_images_(downsample_images)
 {
-    log4cxx::xml::DOMConfigurator::configure("/home/src/trifinger_object_tracking/include/log_configs/trifinger_driver_log_configs.xml");
 }
 
 TriCameraObjectObservation TriCameraObjectTrackerDriver::get_observation()
@@ -56,7 +55,6 @@ TriCameraObjectObservation TriCameraObjectTrackerDriver::get_observation()
         cube_detector_.detect_cube_single_thread(images_bgr);
     auto endTime = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();
-    LOG4CXX_DEBUG(logger, "Time taken to estimate pose " << duration << "ms \n");
 
     constexpr float FILTER_CONFIDENCE_THRESHOLD = 0.75;
     constexpr float FILTER_CONFIDENCE_DEGRADATION = 0.9;

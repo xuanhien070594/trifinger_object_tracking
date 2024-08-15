@@ -14,7 +14,7 @@ from rclpy.executors import MultiThreadedExecutor
 import trifinger_object_tracking.py_object_tracker
 import trifinger_object_tracking.py_tricamera_types as tricamera
 from trifinger_cameras.utils import convert_image
-from trifinger_object_tracking import CubePosePublisher
+from trifinger_object_tracking import CubePoseLcmPublisher
 
 
 def run_cube_pose_tracker():
@@ -60,16 +60,20 @@ def run_cube_pose_tracker():
         "/home/trifinger/workspace/src/trifinger_object_tracking/camera_params/camera_calib_300.yml",
     ]
     cube_visualizer = tricamera.CubeVisualizer(model, camera_params)
+    lcm_publisher = CubePoseLcmPublisher()
 
-    rclpy.init()
-    cube_pose_pub_node = CubePosePublisher(camera_frontend, cube_visualizer)
-    executor = MultiThreadedExecutor()
-    executor.add_node(cube_pose_pub_node)
-
-    executor.spin()
-    executor.shutdown()
-    cube_pose_pub_node.destroy_node()
-    rclpy.shutdown()
+    while True:
+        observation = camera_frontend.get_latest_observation()
+        images = [
+            utils.convert_image(camera.image) for camera in observation.cameras
+        ]
+        images = cube_visualizer.draw_cube(
+            images, observation.object_pose, False
+        )
+        stacked_image = np.hstack(images)
+        lcm_publisher.publish(
+            observation.object_pose, images, int(time.perf_counter() * 1e6)
+        )
 
     if not args.multi_process:
         camera_backend.shutdown()
