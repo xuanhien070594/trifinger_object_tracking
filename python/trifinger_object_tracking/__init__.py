@@ -80,7 +80,7 @@ class CubePosePublisher(Node):
 class CubePoseLcmPublisher(Node):
     def __init__(self):
         self.cube_pose_lcm_channel = "CUBE_STATE"
-        self.cube_image_channel = "CUBE_IMAGE"
+        self.cube_image_lcm_channel = "CUBE_IMAGE"
         self.lc = lcm.LCM()
         self.cv_bridge_ = cv_bridge.CvBridge()
 
@@ -90,8 +90,31 @@ class CubePoseLcmPublisher(Node):
         pose_msg.utime = timestamp
         pose_msg.num_positions = 7
         pose_msg.num_velocities = 6
-        pose_msg.position = cube_pose.orientation + cube_pose.position
-        pose_msg.velocity = [0] * pose_msg.num_velocities
+        pose_msg.position_names = [
+            "cube_qw",
+            "cube_qx",
+            "cube_qy",
+            "cube_qz",
+            "cube_x",
+            "cube_y",
+            "cube_z",
+        ]
+        pose_msg.velocity_names = [
+            "cube_wx",
+            "cube_wy",
+            "cube_wz",
+            "cube_vx",
+            "cube_vy",
+            "cube_vz",
+        ]
+        pose_msg.position = np.concatenate(
+            [
+                cube_pose.orientation[[3]],
+                cube_pose.orientation[:3],
+                cube_pose.position,
+            ]
+        ).tolist()
+        pose_msg.velocity = np.zeros(pose_msg.num_velocities).tolist()
         self.lc.publish(self.cube_pose_lcm_channel, pose_msg.encode())
 
         # publish images
@@ -133,6 +156,6 @@ class CubePoseLcmPublisher(Node):
             img_msg.is_bigendian = True
         data = cvim.tobytes()
         img_msg.size = len(data)
-        img_msg.data.frombytes(data)
+        img_msg.data = data
 
         return img_msg

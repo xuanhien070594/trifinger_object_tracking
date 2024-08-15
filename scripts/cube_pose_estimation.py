@@ -2,6 +2,8 @@
 import argparse
 import time
 import os
+import signal
+import sys
 
 import numpy as np
 import cv2
@@ -11,6 +13,7 @@ import rclpy
 from ament_index_python.packages import get_package_share_directory
 from rclpy.executors import MultiThreadedExecutor
 
+from trifinger_cameras import utils
 import trifinger_object_tracking.py_object_tracker
 import trifinger_object_tracking.py_tricamera_types as tricamera
 from trifinger_cameras.utils import convert_image
@@ -34,12 +37,17 @@ def run_cube_pose_tracker():
         """,
     )
     argparser.add_argument("--multi-process", action="store_true")
+    argparser.add_argument("--live-viewer", action="store_true")
+    argparser.add_argument("--publish-rate", type=int, default=10)
+
     args = argparser.parse_args()
 
     if args.camera_name:
         camera_index = camera_names.index(args.camera_name)
     else:
         camera_index = None
+
+    print("Camera system is starting up ...")
 
     if args.multi_process:
         camera_data = tricamera.MultiProcessData("tricamera", False)
@@ -62,7 +70,17 @@ def run_cube_pose_tracker():
     cube_visualizer = tricamera.CubeVisualizer(model, camera_params)
     lcm_publisher = CubePoseLcmPublisher()
 
+    print("Camera system is ready!")
+
+    def _signal_handler():
+        if not args.multi_process:
+            camera_backend.shutdown()
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, _signal_handler)
+
     while True:
+        start_time = time.perf_counter()
         observation = camera_frontend.get_latest_observation()
         images = [
             utils.convert_image(camera.image) for camera in observation.cameras
@@ -71,12 +89,23 @@ def run_cube_pose_tracker():
             images, observation.object_pose, False
         )
         stacked_image = np.hstack(images)
-        lcm_publisher.publish(
-            observation.object_pose, images, int(time.perf_counter() * 1e6)
-        )
 
-    if not args.multi_process:
-        camera_backend.shutdown()
+        if args.live_viewer:
+            cv2.imshow(" | ".join(camera_names), stacked_image)
+
+        # stop if either "q" or ESC is pressed
+        if cv2.waitKey(3) in [ord("q"), 27]:  # 27 = ESC
+            break
+        elapsed_time = time.perf_counter() - start_time
+        remaining_time = (1.0 / args.publish_rate) - elapsed_time
+
+        if remaining_time > 0:
+            time.sleep(remaining_time)
+        lcm_publisher.publish(
+            observation.object_pose,
+            stacked_image,
+            int(time.perf_counter() * 1e6),
+        )
 
 
 if __name__ == "__main__":
