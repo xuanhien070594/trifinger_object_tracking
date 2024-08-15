@@ -89,9 +89,10 @@ def run_cube_pose_tracker():
             images, observation.object_pose, False
         )
         stacked_image = np.hstack(images)
+	success, compressed_image = cv2.imencode('.jpg', stacked_image, [cv2.IMWRITE_JPEG_QUALITY, 90]
 
         if args.live_viewer:
-            cv2.imshow(" | ".join(camera_names), stacked_image)
+            cv2.imshow(" | ".join(camera_names), compressed_image)
             # stop if either "q" or ESC is pressed
             if cv2.waitKey(1) in [ord("q"), 27]:  # 27 = ESC
                 break
