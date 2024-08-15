@@ -228,9 +228,9 @@ CubeDetector create_trifinger_cube_detector(
     return CubeDetector(
         cube_model,
         {
-            "/home/src/trifinger_object_tracking/camera_params/camera_calib_60.yml",
-            "/home/src/trifinger_object_tracking/camera_params/camera_calib_180.yml",
-            "/home/src/trifinger_object_tracking/camera_params/camera_calib_300.yml",
+            "/home/trifinger/workspace/src/trifinger_object_tracking/camera_params/camera_calib_60.yml",
+            "/home/trifinger/workspace/src/trifinger_object_tracking/camera_params/camera_calib_180.yml",
+            "/home/trifinger/workspace/src/trifinger_object_tracking/camera_params/camera_calib_300.yml",
         });
 }
 

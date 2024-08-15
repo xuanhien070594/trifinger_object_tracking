@@ -55,9 +55,9 @@ def run_cube_pose_tracker():
         camera_backend = tricamera.Backend(camera_driver, camera_data)
     camera_frontend = tricamera.Frontend(camera_data)
     camera_params = [
-        "/home/src/trifinger_object_tracking/camera_params/camera_calib_60.yml",
-        "/home/src/trifinger_object_tracking/camera_params/camera_calib_180.yml",
-        "/home/src/trifinger_object_tracking/camera_params/camera_calib_300.yml",
+        "/home/trifinger/workspace/src/trifinger_object_tracking/camera_params/camera_calib_60.yml",
+        "/home/trifinger/workspace/src/trifinger_object_tracking/camera_params/camera_calib_180.yml",
+        "/home/trifinger/workspace/src/trifinger_object_tracking/camera_params/camera_calib_300.yml",
     ]
     cube_visualizer = tricamera.CubeVisualizer(model, camera_params)
 
