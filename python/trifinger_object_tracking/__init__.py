@@ -2,11 +2,14 @@ import cv_bridge
 import rclpy
 import lcm
 import numpy as np
+
 from rclpy.node import Node
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Pose
-from trifinger_cameras import utils
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
+
+from trifinger_object_tracking.py_object_tracker import ObjectPose
+from trifinger_cameras import utils
 
 from lcmt_object_state import lcmt_object_state
 from lcmt_image import lcmt_image
@@ -159,3 +162,26 @@ class CubePoseLcmPublisher:
         img_msg.data = data
 
         return img_msg
+
+
+class CubeTargetLcmSubscriber:
+    def __init__(self):
+        self.lc = lcm.LCM()
+        self.cube_target_lcm_channel = "CUBE_TARGET"
+        self.subscriber = self.lc.subscribe(
+            self.cube_target_lcm_channel, self.callback
+        )
+        self.subscriber.set_queue_capacity(1)
+        self.cube_pose = ObjectPose()
+        self.cube_pose.position = np.zeros(3)
+        self.cube_pose.orientation = np.array([0, 0, 0, 1])
+        self.cube_pose.confidence = 1.0
+
+    def callback(self) -> None:
+        msg = lcmt_object_state.decode(data)
+        self.cube_pose.orientation[:3] = np.array(msg.position)[1:4]
+        self.cube_pose.orientation[3] = np.array(msg.position)[0]
+        self.cube_pose.position = np.array(msg.position)[4:]
+
+    def get_cube_target_pose(self):
+        return self.cube_pose

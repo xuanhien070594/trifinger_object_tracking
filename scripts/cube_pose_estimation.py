@@ -4,6 +4,7 @@ import time
 import os
 import signal
 import sys
+import select
 
 import numpy as np
 import cv2
@@ -17,7 +18,10 @@ from trifinger_cameras import utils
 import trifinger_object_tracking.py_object_tracker
 import trifinger_object_tracking.py_tricamera_types as tricamera
 from trifinger_cameras.utils import convert_image
-from trifinger_object_tracking import CubePoseLcmPublisher
+from trifinger_object_tracking import (
+    CubePoseLcmPublisher,
+    CubeTargetLcmSubscriber,
+)
 
 
 def run_cube_pose_tracker():
@@ -69,6 +73,7 @@ def run_cube_pose_tracker():
     ]
     cube_visualizer = tricamera.CubeVisualizer(model, camera_params)
     lcm_publisher = CubePoseLcmPublisher()
+    cube_target_subscriber = CubeTargetLcmSubscriber()
 
     print("Camera system is ready!")
 
@@ -80,14 +85,30 @@ def run_cube_pose_tracker():
     signal.signal(signal.SIGINT, _signal_handler)
 
     while True:
+        # waiting for incoming lcm message of cube target pose
+        rfds, wfds, efds = select.select([lc.fileno()], [], [], 1e-4)
+        if rfds:
+            cube_target_subscriber.lc.handle()
+
         start_time = time.perf_counter()
         observation = camera_frontend.get_latest_observation()
         images = [
             utils.convert_image(camera.image) for camera in observation.cameras
         ]
+
+        # draw projected cube with the estimated pose
         images = cube_visualizer.draw_cube(
-            images, observation.object_pose, np.array([102, 102, 255]), False
+            images, observation.object_pose, np.array([255, 100, 0]), False
         )
+
+        # draw target cube
+        images = cube_visualizer.draw_cube(
+            images,
+            cube_target_subscriber.get_cube_target_pose(),
+            np.array([102, 102, 255]),
+            False,
+        )
+
         stacked_image = np.hstack(images)
         resized_stacked_image = cv2.resize(
             stacked_image, (0, 0), fx=0.5, fy=0.5
