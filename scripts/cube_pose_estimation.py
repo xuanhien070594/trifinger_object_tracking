@@ -86,7 +86,7 @@ def run_cube_pose_tracker():
             utils.convert_image(camera.image) for camera in observation.cameras
         ]
         images = cube_visualizer.draw_cube(
-            images, observation.object_pose, False
+            images, observation.object_pose, np.array([102, 102, 255]), False
         )
         stacked_image = np.hstack(images)
 
@@ -95,8 +95,10 @@ def run_cube_pose_tracker():
             # stop if either "q" or ESC is pressed
             if cv2.waitKey(1) in [ord("q"), 27]:  # 27 = ESC
                 break
-        success, compressed_image = cv2.imencode('.jpg', stacked_image, [cv2.IMWRITE_JPEG_QUALITY, 90])
-	compressed_image = np.array(compressed_image)
+        success, compressed_image = cv2.imencode(
+            ".jpg", stacked_image, [cv2.IMWRITE_JPEG_QUALITY, 90]
+        )
+        compressed_image = np.array(compressed_image)
         elapsed_time = time.perf_counter() - start_time
         remaining_time = (1.0 / args.publish_rate) - elapsed_time
 
