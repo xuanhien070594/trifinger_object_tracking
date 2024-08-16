@@ -5,7 +5,7 @@ namespace trifinger_object_tracking
 std::array<cv::Mat, CubeVisualizer::N_CAMERAS> CubeVisualizer::draw_cube(
     const std::array<cv::Mat, CubeVisualizer::N_CAMERAS> &images,
     const ObjectPose &object_pose,
-    const std::vector<int> &bgr,
+    const std::vector<double> &bgr,
     bool fill,
     float alpha)
 {
@@ -91,7 +91,7 @@ void CubeVisualizer::draw_filled_cube(cv::Mat &image,
 void CubeVisualizer::draw_cube_wireframe(
     cv::Mat &image,
     size_t camera_index,
-    const std::vector<int> &bgr,
+    const std::vector<double> &bgr,
     const std::vector<cv::Point2f> &imgpoints)
 {
     // draw all the cube edges in the out_images[i]

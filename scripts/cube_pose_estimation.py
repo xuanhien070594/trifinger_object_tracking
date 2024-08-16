@@ -89,16 +89,15 @@ def run_cube_pose_tracker():
             images, observation.object_pose, np.array([102, 102, 255]), False
         )
         stacked_image = np.hstack(images)
+        resized_stacked_image = cv2.resize(
+            stacked_image, (0, 0), fx=0.5, fy=0.5
+        )
 
         if args.live_viewer:
-            cv2.imshow(" | ".join(camera_names), stacked_image)
+            cv2.imshow(" | ".join(camera_names), resized_stacked_image)
             # stop if either "q" or ESC is pressed
             if cv2.waitKey(1) in [ord("q"), 27]:  # 27 = ESC
                 break
-        success, compressed_image = cv2.imencode(
-            ".jpg", stacked_image, [cv2.IMWRITE_JPEG_QUALITY, 90]
-        )
-        compressed_image = np.array(compressed_image)
         elapsed_time = time.perf_counter() - start_time
         remaining_time = (1.0 / args.publish_rate) - elapsed_time
 
@@ -106,7 +105,7 @@ def run_cube_pose_tracker():
             time.sleep(remaining_time)
         lcm_publisher.publish(
             observation.object_pose,
-            stacked_image,
+            resized_stacked_image,
             int(time.perf_counter() * 1e6),
         )
 
