@@ -95,6 +95,7 @@ PYBIND11_MODULE(py_tricamera_types, m)
              &CubeVisualizer::draw_cube,
              pybind11::arg("images"),
              pybind11::arg("object_pose"),
+             pybind11::arg("color"),
              pybind11::arg("fill") = true,
              pybind11::arg("opacity") = 0.5)
         .def("draw_circle",

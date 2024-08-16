@@ -67,6 +67,7 @@ public:
     std::array<cv::Mat, N_CAMERAS> draw_cube(
         const std::array<cv::Mat, N_CAMERAS> &images,
         const ObjectPose &object_pose,
+        const cv::Scalar &color,
         bool fill_faces = false,
         float opacity = 0.5);
 
@@ -110,6 +111,7 @@ private:
     //! Draw wireframe cube in the given image
     void draw_cube_wireframe(cv::Mat &image,
                              size_t camera_index,
+                             const cv::Scalar &color,
                              const std::vector<cv::Point2f> &imgpoints);
 };
 }  // namespace trifinger_object_tracking

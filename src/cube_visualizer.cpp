@@ -5,6 +5,7 @@ namespace trifinger_object_tracking
 std::array<cv::Mat, CubeVisualizer::N_CAMERAS> CubeVisualizer::draw_cube(
     const std::array<cv::Mat, CubeVisualizer::N_CAMERAS> &images,
     const ObjectPose &object_pose,
+    const cv::Scalar &color,
     bool fill,
     float alpha)
 {
@@ -22,7 +23,7 @@ std::array<cv::Mat, CubeVisualizer::N_CAMERAS> CubeVisualizer::draw_cube(
         }
         else
         {
-            draw_cube_wireframe(out_images[i], i, imgpoints);
+            draw_cube_wireframe(out_images[i], i, color, imgpoints);
         }
 
         if (alpha < 1)
@@ -90,6 +91,7 @@ void CubeVisualizer::draw_filled_cube(cv::Mat &image,
 void CubeVisualizer::draw_cube_wireframe(
     cv::Mat &image,
     size_t camera_index,
+    const cv::Scalar &color,
     const std::vector<cv::Point2f> &imgpoints)
 {
     // draw all the cube edges in the out_images[i]
@@ -98,7 +100,8 @@ void CubeVisualizer::draw_cube_wireframe(
         cv::line(image,
                  imgpoints[it.second.c1],
                  imgpoints[it.second.c2],
-                 cv::Scalar(100, 50, 0),
+                 //cv::Scalar(100, 50, 0),
+                 color,
                  2);
     }
 
@@ -113,7 +116,8 @@ void CubeVisualizer::draw_cube_wireframe(
             cv::line(image,
                      imgpoints[corner_indices[ci]],
                      imgpoints[corner_indices[(ci + 1) % 4]],
-                     cv::Scalar(255, 100, 0),
+                     color,
+                     //cv::Scalar(255, 100, 0),
                      2);
         }
     }
