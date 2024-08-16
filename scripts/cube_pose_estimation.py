@@ -86,7 +86,7 @@ def run_cube_pose_tracker():
 
     while True:
         # waiting for incoming lcm message of cube target pose
-        rfds, wfds, efds = select.select([lc.fileno()], [], [], 1e-4)
+        rfds, wfds, efds = select.select([cube_target_subscriber.lc.fileno()], [], [], 1e-4)
         if rfds:
             cube_target_subscriber.lc.handle()
 

@@ -25,17 +25,42 @@ PYBIND11_MODULE(py_object_tracker, m)
 {
     pybind11::class_<ObjectPose>(m, "ObjectPose")
         .def(pybind11::init<>())
-        .def_readwrite("position",
-                       &ObjectPose::position,
-                       "Position (x, y, z) in the world frame.")
-        .def_readwrite(
-            "orientation",
-            &ObjectPose::orientation,
-            "Orientation quaternion (x, y, z, w) in the world frame.")
-        .def_readwrite(
-            "confidence",
-            &ObjectPose::confidence,
-            "Confidence measure of the object tracker.  Between 0 and 1.")
+        .def_property( "position",
+            // Getter
+            [](ObjectPose const& self )
+            {
+                return self.position;
+            },
+            // Setter
+            [](ObjectPose& self, Eigen::Vector3d const& val )
+            {
+                self.position = val;
+            }
+        )
+        .def_property( "orientation",
+            // Getter
+            [](ObjectPose const& self )
+            {
+                return self.orientation;
+            },
+            // Setter
+            [](ObjectPose& self, Eigen::Vector4d const& val )
+            {
+                self.orientation = val;
+            }
+        )
+        .def_property( "confidence",
+            // Getter
+            [](ObjectPose const& self )
+            {
+                return self.confidence;
+            },
+            // Setter
+            [](ObjectPose& self, double const& val )
+            {
+                self.confidence = val;
+            }
+        )
         .def("__str__",
              &ObjectPose::to_string,
              pybind11::call_guard<pybind11::gil_scoped_release>());
