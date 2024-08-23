@@ -83,6 +83,8 @@ def run_cube_pose_tracker():
         sys.exit(0)
 
     signal.signal(signal.SIGINT, _signal_handler)
+    cur_timeindex = camera_frontend.get_current_timeindex()
+    measure_camera_rate = time.perf_counter()
 
     while True:
         # waiting for incoming lcm message of cube target pose
@@ -92,41 +94,44 @@ def run_cube_pose_tracker():
 
         start_time = time.perf_counter()
         observation = camera_frontend.get_latest_observation()
-        images = [
-            utils.convert_image(camera.image) for camera in observation.cameras
-        ]
+        # images = [
+        #     utils.convert_image(camera.image) for camera in observation.cameras
+        # ]
 
-        # draw projected cube with the estimated pose
-        images = cube_visualizer.draw_cube(
-            images, observation.object_pose, np.array([255, 100, 0]), False
-        )
+        # # draw projected cube with the estimated pose
+        # images = cube_visualizer.draw_cube(
+        #     images, observation.object_pose, np.array([255, 100, 0]), False
+        # )
 
-        # draw target cube
-        images = cube_visualizer.draw_cube(
-            images,
-            cube_target_subscriber.get_cube_target_pose(),
-            np.array([102, 102, 255]),
-            False,
-        )
+        # # draw target cube
+        # images = cube_visualizer.draw_cube(
+        #     images,
+        #     cube_target_subscriber.get_cube_target_pose(),
+        #     np.array([102, 102, 255]),
+        #     False,
+        # )
 
-        stacked_image = np.hstack(images)
-        resized_stacked_image = cv2.resize(
-            stacked_image, (0, 0), fx=0.5, fy=0.5
-        )
+        # stacked_image = np.hstack(images)
+        # resized_stacked_image = cv2.resize(
+        #     stacked_image, (0, 0), fx=0.5, fy=0.5
+        # )
 
-        if args.live_viewer:
-            cv2.imshow(" | ".join(camera_names), resized_stacked_image)
-            # stop if either "q" or ESC is pressed
-            if cv2.waitKey(1) in [ord("q"), 27]:  # 27 = ESC
-                break
+        # if args.live_viewer:
+        #     cv2.imshow(" | ".join(camera_names), resized_stacked_image)
+        #     # stop if either "q" or ESC is pressed
+        #     if cv2.waitKey(1) in [ord("q"), 27]:  # 27 = ESC
+        #         break
         elapsed_time = time.perf_counter() - start_time
         remaining_time = (1.0 / args.publish_rate) - elapsed_time
+        latest_timeindex = camera_frontend.get_current_timeindex()
+        if latest_timeindex > cur_timeindex:
+            print(time.perf_counter() - measure_camera_rate)
+            cur_timeindex = latest_timeindex
 
         if remaining_time > 0:
             time.sleep(remaining_time)
-        lcm_publisher.publish(
+        lcm_publisher.pub_pose(
             observation.object_pose,
-            resized_stacked_image,
             int(time.perf_counter() * 1e6),
         )
 

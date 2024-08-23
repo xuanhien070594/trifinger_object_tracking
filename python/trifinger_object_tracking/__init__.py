@@ -87,7 +87,7 @@ class CubePoseLcmPublisher:
         self.lc = lcm.LCM()
         self.cv_bridge_ = cv_bridge.CvBridge()
 
-    def publish(self, cube_pose, images, timestamp):
+    def pub_pose(self, cube_pose, timestamp):
         # publish cube poses.
         pose_msg = lcmt_object_state()
         pose_msg.utime = timestamp
@@ -120,7 +120,7 @@ class CubePoseLcmPublisher:
         pose_msg.velocity = np.zeros(pose_msg.num_velocities).tolist()
         self.lc.publish(self.cube_pose_lcm_channel, pose_msg.encode())
 
-        # publish images
+    def pub_images(self, images, timestamp):
         img_msg = self.cv2_image_to_lcm(images, "bgr8", timestamp)
         self.lc.publish(self.cube_image_lcm_channel, img_msg.encode())
 
@@ -177,7 +177,7 @@ class CubeTargetLcmSubscriber:
         self.cube_pose.orientation = np.array([0, 0, 0, 1])
         self.cube_pose.confidence = 1.0
 
-    def callback(self) -> None:
+    def callback(self, channel, data) -> None:
         msg = lcmt_object_state.decode(data)
         self.cube_pose.orientation[:3] = np.array(msg.position)[1:4]
         self.cube_pose.orientation[3] = np.array(msg.position)[0]
