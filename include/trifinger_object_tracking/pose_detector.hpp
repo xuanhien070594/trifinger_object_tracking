@@ -96,6 +96,7 @@ public:
     void set_pose(const Pose &pose);
 
 private:
+    arma::vec pose_ = {0., 0., 0.0325, 0., 0., 0.};
     BaseCuboidModel::ConstPtr cube_model_;
 
     std::array<cv::Mat, N_CAMERAS> camera_matrices_;

@@ -488,7 +488,7 @@ void PoseDetector::optimize_using_optim(
     // unsigned int num_pixels_per_mask = 15;
     // MasksPixels sampled_masks_pixels =
     //     sample_masks_pixels(masks_pixels, num_pixels_per_mask);
-    unsigned int num_samples = 500;
+    unsigned int num_samples = 250;
     MasksPixels sampled_masks_pixels =
         sample_masks_pixels_proportionally(masks_pixels, num_samples);
 
@@ -510,11 +510,10 @@ void PoseDetector::optimize_using_optim(
     settings.upper_bounds = {0.20, 0.20, 0.2, 1e1, 1e1, 1e1};
     settings.de_settings.initial_lb = {-0.2, -0.2, 0, -1, -1, -1};
     settings.de_settings.initial_ub = {0.2, 0.2, 0.2, 1, 1, 1};
-    arma::vec pose = {0., 0., 0.0325, 0., 0., 0.};
 
 //    auto startTime = std::chrono::high_resolution_clock::now();
     optim::de(
-        pose,
+        pose_,
         [this,
          &dominant_colors,
          &sampled_masks_pixels,
@@ -544,7 +543,7 @@ void PoseDetector::optimize_using_optim(
 //    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();
 //    std::cout << "Time taken to estimate pose " << duration << std::endl;
 
-    pose2position_and_orientation(pose, &position_.mean, &orientation_.mean);
+    pose2position_and_orientation(pose_, &position_.mean, &orientation_.mean);
 
 //    confidence_ = compute_confidence(
 //        position_.mean, orientation_.mean, dominant_colors, masks_pixels);
